@@ -77,11 +77,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="camera.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="mathlib.cpp" />
     <ClCompile Include="Model.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="camera.h" />
+    <ClInclude Include="Camera2.h" />
     <ClInclude Include="mathlib.h" />
     <ClInclude Include="Model.h" />
   </ItemGroup>

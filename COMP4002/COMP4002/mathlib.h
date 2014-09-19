@@ -513,8 +513,8 @@ inline Quaternion &Quaternion::operator*=(const Quaternion &rhs)
         (w * rhs.x) + (x * rhs.w) - (y * rhs.z) + (z * rhs.y),
         (w * rhs.y) + (x * rhs.z) + (y * rhs.w) - (z * rhs.x),
         (w * rhs.z) - (x * rhs.y) + (y * rhs.x) + (z * rhs.w));
-
-    /*
+	/*
+    
     // Multiply so that rotations are applied in a right to left order.
     Quaternion tmp(
     (w * rhs.w) - (x * rhs.x) - (y * rhs.y) - (z * rhs.z),

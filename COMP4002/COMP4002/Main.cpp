@@ -13,15 +13,18 @@
 #include <windows.h>	   // Standard header for MS Windows applications
 #include <GL/gl.h>		   // Open Graphics Library (OpenGL) header
 #include <glut.h>	   // The GL Utility Toolkit (GLUT) Header
+
+#include "camera.h"
 #include <string>
 #include <ctime>
+#include <iostream>
 
 #define RAND_MAX 1
 
 using namespace std;
 
 #include "Model.h"
-//#include "Camera.h"
+#include "Camera.h"
 
 #define KEY_ESCAPE 27
 
@@ -39,10 +42,14 @@ typedef struct {
 glutWindow win;
 Model model;
 float angle;
-//Camera camera;
+Camera *camera;
 
 int mousex;
 int mousey;
+Vector3* cameraLook;
+bool rotateMode = false;
+int oldmousex;
+int oldmousey;
 
 void printtext(int x, int y, string String)
 {
@@ -68,19 +75,26 @@ void printtext(int x, int y, string String)
 	glPopMatrix();
 }
 
+int oldtime = 0;
+
 void display()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);		     // Clear Screen and Depth Buffer
 	glLoadIdentity();
-
+	
 	char string[64];
-	sprintf(string, "Angle: %f", angle);
-	printtext(10, 10, string);
+	//int newtime = glutGet(GLUT_ELAPSED_TIME);
+    //int deltatime = newtime - oldtime;
+	//oldtime = newtime;
+	//sprintf(string,"Time: %i", deltatime);
+	//printtext(10, 10, string);
+	camera->display();
 
-	gluLookAt(0,0,10,0,0,0,0,1,0);
+	//camera->Move(-0.01f);
+	//gluLookAt(0,0,10,0, 0, 0, 0, 1, 0);
 
 	glColor3f(0.5f, 0.5f, 0.5f);
-
+	
 	for (int i = 0; i < 10; i++){
 		glBegin(GL_TRIANGLE_STRIP);
 			for (int j = 0; j < 10; j++){
@@ -127,6 +141,24 @@ void display()
 
 	//glPopMatrix();
 
+	sprintf(string, "Up: %f,%f,%f", camera->GetUp().x, camera->GetUp().y, camera->GetUp().z);
+	printtext(10, 10, string);
+
+	sprintf(string, "Position: %f,%f,%f", camera->GetPosition().x, camera->GetPosition().y, camera->GetPosition().z);
+	printtext(10, 25, string);
+
+	sprintf(string, "LookAt: %f,%f,%f", camera->GetLookAt().x, camera->GetLookAt().y, camera->GetLookAt().z);
+	printtext(10, 40, string);
+
+	sprintf(string, "ZAxis: %f,%f,%f", camera->GetAxisZ().x, camera->GetAxisZ().y, camera->GetAxisZ().z);
+	printtext(10, 55, string);
+
+	sprintf(string, "YAxis: %f,%f,%f", camera->GetAxisY().x, camera->GetAxisY().y, camera->GetAxisY().z);
+	printtext(10, 70, string);
+
+	sprintf(string, "XAxis: %f,%f,%f", camera->GetAxisX().x, camera->GetAxisX().y, camera->GetAxisX().z);
+	printtext(10, 85, string);
+
 	glutSwapBuffers();
 	angle += 0.01f;
 }
@@ -149,18 +181,26 @@ void initialize ()
     glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST );						// specify implementation-specific hints
 	glClearColor(0.0, 0.0, 0.0, 1.0);											// specify clear values for the color buffers	
 	model.Initialize();
+	cameraLook = new Vector3(0, 0, 5);
+	camera = new Camera(*cameraLook);
+	mousex = win.width / 2;
+	mousey = win.height / 2;
+	glutWarpPointer(mousex, mousey);
+	//camera->setFollow(cameraLook);
 }
 
 
 void keyboard ( unsigned char key, int mousePositionX, int mousePositionY )		
 { 
+  cout << "Keyboard hit\n";
+  
   switch ( key ) 
   {
     case KEY_ESCAPE:        
       exit ( 0 );   
       break;
 
-	case 'f':
+	case 'g':
 		win.fullscreen = !win.fullscreen;
 		if (win.fullscreen)	glutFullScreen();
 		else {
@@ -168,19 +208,59 @@ void keyboard ( unsigned char key, int mousePositionX, int mousePositionY )
 			glutReshapeWindow(win.width, win.height);
 		}
 		break;
-
+	case 'w':
+		camera->Move(-0.1f);
+		break;
+	case 's':
+		camera->Move(0.1f);
+		break;
+	case 'a':
+		camera->Strafe(-0.1f);
+		break;
+	case 'd':
+		camera->Strafe(0.1f);
+		break;
+	case 'q':
+		camera->Roll(-2);
+		break;
+	case 'e':
+		camera->Roll(2);
+		break;
+	case 'r':
+		camera->Up(0.1f);
+		break;
+	case 'f':
+		camera->Up(-0.1f);
+		break;
+	case ' ':
+		rotateMode = !rotateMode;
+		if (rotateMode) glutWarpPointer(win.width / 2, win.height / 2);
+		break;
     default:      
       break;
   }
 }
 
 void processSpecialKeys(int key, int xx, int yy) {
+	cout << "Keyboard hit2\n";
 	switch (key) {
 		case GLUT_KEY_LEFT:
-			//camera.YawPitchRoll(-0.05f, 0.0f, 0.0f);
+			//camera->Roll(-2.0f);
+			//camera.rotate(-1.0f, 0.0f, 0.0f);
 			break;
 		case GLUT_KEY_RIGHT:
-			//camera.YawPitchRoll(0.05f, 0.0f, 0.0f);
+			//camera->Roll(2.0f);
+			//camera.rotate(1.0f, 0.0f, 0.0f);
+			break;
+		case GLUT_KEY_UP:
+			camera->Pitch(-1.0f);
+			//camera->Move(-0.1f);
+			//camera.move(camera.getZAxis(), Vector3(-0.05f, -0.05f, -0.05f));
+			break;
+		case GLUT_KEY_DOWN:
+			//camera->Move(0.1f);
+			camera->Pitch(1.0f);
+			//camera.move(camera.getZAxis(), Vector3(0.05f, 0.05f, 0.05f));
 			break;
 	}
 }
@@ -204,22 +284,45 @@ void changeSize(int w, int h)
 	}
 }
 
+bool warped = false;
+
 void mouseMove(int x, int y){
-	
-	if (mousex >= 0) {
+	if (rotateMode){
+		if (warped){
+			warped = false;
+			return;
+		}
+		else
+		{
+			camera->Yaw(0.05f * (x - mousex));
+			camera->Pitch(0.05f * (y - mousey));
+			//mousex = x;
+			//mousey = y;
+			glutWarpPointer(mousex, mousey);
+			warped = true;
+		}
+	}
+	/*if (camera->GetUp() != Vector3(0, 1, 0)){
+		float angle = acos(Vector3().dot(camera->GetUp(), Vector3(0, 1, 0)));
+		camera->Roll(angle / 100);
+	}*/
+	//glutWarpPointer(win.width / 2, win.height / 2);
+	//if (mousex >= 0) {
+		//camera->Yaw(0.1f * (x - mousex));
 		//camera.YawPitchRoll(0.005f * (x - mousex), 0.0f, 0.0f);
-		mousex = x;
-	}
-	if (mousey >= 0) {
+		//mousex = win.width / 2;
+	//}
+	//if (mousey >= 0) {
+		//camera->Pitch(0.1f * (y - mousey));
 		//camera.YawPitchRoll(0.0f, 0.005f * (y - mousey), 0.0f);
-		mousey = y;
-	}
+		//mousey = win.height / 2;
+	//}
 
 }
 
 void mouseButton(int button, int state, int x, int y)
 {
-	if (button == GLUT_RIGHT_BUTTON){
+	/*if (button == GLUT_RIGHT_BUTTON){
 		if (state == GLUT_UP){
 			mousex = -1;
 			mousey = -1;
@@ -227,6 +330,14 @@ void mouseButton(int button, int state, int x, int y)
 		else if (state == GLUT_DOWN){
 			mousex = x;
 			mousey = y;
+		}
+
+		
+	}*/
+	if (button == GLUT_RIGHT_BUTTON){
+		if (state == GLUT_DOWN){
+			rotateMode = !rotateMode;
+			if (rotateMode) glutWarpPointer(win.width / 2, win.height / 2);
 		}
 	}
 }
@@ -255,7 +366,7 @@ int main(int argc, char **argv)
 	glutSpecialFunc(processSpecialKeys);
 
 	glutMouseFunc(mouseButton);
-	glutMotionFunc(mouseMove);
+	glutPassiveMotionFunc(mouseMove);
 
 	initialize();
 	glutMainLoop();												// run GLUT mainloop
