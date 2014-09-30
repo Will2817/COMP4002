@@ -182,63 +182,12 @@ void initialize ()
 	glClearColor(0.0, 0.0, 0.0, 1.0);											// specify clear values for the color buffers	
 	model.Initialize();
 	cameraLook = new Vector3(0, 0, 5);
-	camera = new Camera(*cameraLook);
+	camera = new Camera(*cameraLook);//defaults to 5 degrees of freedom
+	//camera->toggleFirstPerson(); //modifies camera to have 6 degrees of freedom
 	mousex = win.width / 2;
 	mousey = win.height / 2;
 	glutWarpPointer(mousex, mousey);
 	//camera->setFollow(cameraLook);
-}
-
-
-void keyboard ( unsigned char key, int mousePositionX, int mousePositionY )		
-{ 
-  cout << "Keyboard hit\n";
-  
-  switch ( key ) 
-  {
-    case KEY_ESCAPE:        
-      exit ( 0 );   
-      break;
-
-	case 'g':
-		win.fullscreen = !win.fullscreen;
-		if (win.fullscreen)	glutFullScreen();
-		else {
-			glutPositionWindow(9, 30);
-			glutReshapeWindow(win.width, win.height);
-		}
-		break;
-	case 'w':
-		camera->Move(-0.1f);
-		break;
-	case 's':
-		camera->Move(0.1f);
-		break;
-	case 'a':
-		camera->Strafe(-0.1f);
-		break;
-	case 'd':
-		camera->Strafe(0.1f);
-		break;
-	case 'q':
-		camera->Roll(-2);
-		break;
-	case 'e':
-		camera->Roll(2);
-		break;
-	case 'r':
-		camera->Up(0.1f);
-		break;
-	case 'f':
-		camera->Up(-0.1f);
-		break;
-	case ' ':
-		rotateMode = !rotateMode;
-		if (rotateMode) glutWarpPointer(win.width / 2, win.height / 2);
-		break;
-    default:      
-      break;
-  }
 }
 
 void processSpecialKeys(int key, int xx, int yy) {
@@ -340,6 +289,59 @@ void mouseButton(int button, int state, int x, int y)
 			if (rotateMode) glutWarpPointer(win.width / 2, win.height / 2);
 		}
 	}
+}
+
+void keyboard ( unsigned char key, int mousePositionX, int mousePositionY )		
+{ 
+  cout << "Keyboard hit\n";
+  
+  switch ( key ) 
+  {
+    case KEY_ESCAPE:        
+      exit ( 0 );   
+      break;
+
+	case 'g':
+		win.fullscreen = !win.fullscreen;
+		if (win.fullscreen)	glutFullScreen();
+		else {
+			glutPositionWindow(9, 30);
+			glutReshapeWindow(win.width, win.height);
+		}
+		break;
+	case 'w':
+		camera->Move(-0.1f);
+		break;
+	case 's':
+		camera->Move(0.1f);
+		break;
+	case 'a':
+		camera->Strafe(-0.1f);
+		break;
+	case 'd':
+		camera->Strafe(0.1f);
+		break;
+	case 'q':
+		camera->Roll(-2);
+		break;
+	case 'e':
+		camera->Roll(2);
+		break;
+	case 'r':
+		camera->Up(0.1f);
+		break;
+	case 'f':
+		camera->Up(-0.1f);
+		break;
+	case ' ':
+		rotateMode = !rotateMode;
+		if (rotateMode) glutWarpPointer(win.width / 2, win.height / 2);
+		break;
+    default:      
+      break;
+  }
+
+  mouseMove(mousePositionX, mousePositionY);
 }
 
 int main(int argc, char **argv) 

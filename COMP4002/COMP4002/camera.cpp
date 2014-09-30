@@ -13,7 +13,7 @@ Camera::Camera() {
 	m_quatOrientation.identity();
 	//m_viewMatrix.identity();
 	upToDate = false;
-	firstPerson = false;
+	firstPerson = true;
 }
 
 Camera::Camera(Vector3 pos) {
@@ -25,7 +25,7 @@ Camera::Camera(Vector3 pos) {
 	m_position = pos;
 	m_lookatPosition = pos + Vector3(0.0f, 0.0f, -1.0f);
 	upToDate = false;
-	firstPerson = false;
+	firstPerson = true;
 }
 
 
@@ -83,6 +83,7 @@ void Camera::display(){
 	m_lookatPosition = m_position - GetAxisZ();
 	up = GetAxisY();
 	up.normalize();
+	up = Vector3(0.0f, 1.0f, 0.0f);
 
 	gluLookAt(m_position.x,m_position.y,m_position.z,
 		      m_lookatPosition.x,m_lookatPosition.y,m_lookatPosition.z,
@@ -182,10 +183,16 @@ bool Camera::RotateYAxis(Quaternion *pOrientation, float fAngle) {
 	if (pOrientation) {
 		Quaternion Rotation;
 
-		Rotation.fromAxisAngle(*TransformVector(
-			pOrientation,
-			&Vector3(0.0f, 1.0f, 0.0f)
-			), fAngle);
+		if (firstPerson) {
+			Rotation.fromAxisAngle(Vector3(0.0f, 1.0f, 0.0f), fAngle);
+		}
+		else
+		{
+			Rotation.fromAxisAngle(*TransformVector(
+				pOrientation,
+				&Vector3(0.0f, 1.0f, 0.0f)
+				), fAngle);
+		}
 
 		*pOrientation = Rotation * *pOrientation;
 
