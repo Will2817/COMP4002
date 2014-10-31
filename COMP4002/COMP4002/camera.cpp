@@ -132,7 +132,6 @@ void Camera::applyTranslation(float fDistance, eDir ceDir) {
 						  break;
 		}
 	}
-	std::cout << "VDIR: " << vDir.x << "," << vDir.y << "," << vDir.z << "\n";
 
 	m_position += vDir * fDistance;
 	m_lookatPosition += vDir * fDistance;
