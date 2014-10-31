@@ -193,3 +193,48 @@ public:
 			);
 	}
 };
+
+class Plane :public Renderable
+{
+public:
+	Plane(float x, float y, float z, float width, float height, float depth) {
+		position = Vector3(x, y, z);
+		auto const num_vertices = 8;
+		auto const num_indices = 24;
+
+		auto min_x = -width / 2;
+		auto max_x = width / 2;
+		auto min_y = -height / 2;
+		auto max_y = height / 2;
+
+
+		Vertex vertices[num_vertices] = {
+			Vertex(min_x, min_y, 0, 1),
+			Vertex(min_x, max_y, 0, 1),
+			Vertex(max_x, max_y, 0, 1),
+			Vertex(max_x, min_y, 0, 1)
+		};
+
+		GLushort indices[num_indices] = {
+			0, 1, 2 ,3
+		};
+
+		Color colors[num_vertices];
+
+		for (auto i = 0; i < num_vertices; ++i) {
+			colors[i] = Color(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, 1);
+		}
+
+		init_geometry(vertices, colors, num_vertices, indices, num_indices);
+	}
+
+	void render_self(Matrix4 &self) {
+		// Draw the quads
+		glDrawElements(
+			GL_QUADS,            // mode
+			24,					 // count
+			GL_UNSIGNED_SHORT,   // type
+			(void*)0             // element array buffer offset
+			);
+	}
+};

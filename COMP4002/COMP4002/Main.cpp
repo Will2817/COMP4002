@@ -45,8 +45,8 @@ void updateState() {
 	if (specials[GLUT_KEY_RIGHT])	cam.yaw(Math::degreesToRadians(2));
 	if (specials[GLUT_KEY_UP])		cam.pitch(Math::degreesToRadians(-2));
 	if (specials[GLUT_KEY_DOWN])	cam.pitch(Math::degreesToRadians(2));
-	if (keys['a'])					cam.roll(Math::degreesToRadians(-2));
-	if (keys['d'])					cam.roll(Math::degreesToRadians(2));
+	if (keys['a'])					cam.strafe(-0.2f);
+	if (keys['d'])					cam.strafe(0.2f);
 	if (keys['w'])					cam.move(-0.2);
 	if (keys['s'])					cam.move(0.2);
 
@@ -123,6 +123,8 @@ void createEntities() {
 	entities[0]->children.push_back(new Sphere(-20, 30, 0, 10));
 
 	entities.push_back(new Sphere(0, 0, -100, 10));
+	entities.push_back(new Plane(0, -10, 0, 1000, 1000, 0));
+	entities.back()->orientation.fromAxisAngle(Vector3(1, 0, 0), 90);
 }
 
 int main(int argc, char **argv) {
