@@ -19,7 +19,7 @@ std::vector<Renderable*> entities = std::vector<Renderable*>();
 bool keys[128] = { false };
 bool specials[256] = { false };
 
-
+int oldtime = 0;
 
 
 /*****************************************************************************/
@@ -41,14 +41,21 @@ void resizeWin(int w, int h) {
 }
 
 void updateState() {
-	if (specials[GLUT_KEY_LEFT])	cam.yaw(Math::degreesToRadians(-2));
-	if (specials[GLUT_KEY_RIGHT])	cam.yaw(Math::degreesToRadians(2));
-	if (specials[GLUT_KEY_UP])		cam.pitch(Math::degreesToRadians(-2));
-	if (specials[GLUT_KEY_DOWN])	cam.pitch(Math::degreesToRadians(2));
-	if (keys['a'])					cam.strafe(-0.2f);
-	if (keys['d'])					cam.strafe(0.2f);
-	if (keys['w'])					cam.move(-0.2);
-	if (keys['s'])					cam.move(0.2);
+	auto time = glutGet(GLUT_ELAPSED_TIME);
+	auto delta = (time - oldtime) / 1000.0;
+	oldtime = time;
+
+	float mspeed = 300 * delta;
+	float tspeed = 50 * delta;
+
+	if (specials[GLUT_KEY_LEFT])	cam.yaw(-tspeed);
+	if (specials[GLUT_KEY_RIGHT])	cam.yaw(tspeed);
+	if (specials[GLUT_KEY_UP])		cam.pitch(-tspeed);
+	if (specials[GLUT_KEY_DOWN])	cam.pitch(tspeed);
+	if (keys['a'])					cam.strafe(-mspeed);
+	if (keys['d'])					cam.strafe(mspeed);
+	if (keys['w'])					cam.move(-mspeed);
+	if (keys['s'])					cam.move(mspeed);
 	/*
 	if (keys['i'])	entities[0]->position.z += 0.1;
 	if (keys['k'])	entities[0]->position.z -= 0.1;
@@ -129,10 +136,12 @@ void createEntities() {
 	*/
 	entities.push_back(new Plane(0, 0, 0, 1000, 1000, 0));
 	entities.back()->orientation.fromAxisAngle(Vector3(1, 0, 0), 90);
-	entities.push_back(new TreeNaive(0,0,-200,20,2,3));
+	entities.push_back(new TreeNaive(0, 0, -400, 20, 0.5, 20, 3, 1, 30));
 }
 
 int main(int argc, char **argv) {
+	srand(10);
+
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
 	glutInitWindowPosition(100, 100);
@@ -161,8 +170,8 @@ int main(int argc, char **argv) {
 	cam.setPosition(100, 100, 10);
 
 	shader = setupShaders();
-	createEntities();
 
+	createEntities();
 	glutMainLoop();
 
 	return(0);

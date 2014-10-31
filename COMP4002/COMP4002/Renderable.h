@@ -24,6 +24,10 @@ struct Color {
 	}
 };
 
+float randf() {
+	return ((float)rand()) / (float) RAND_MAX;
+}
+
 GLuint mvpMatrixLoc;
 GLuint vertexLoc;
 GLuint colorLoc;
@@ -122,7 +126,7 @@ public:
 		Color colors[num_vertices];
 
 		for (auto i = 0; i < num_vertices; ++i) {
-			colors[i] = Color(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, 1);
+			colors[i] = Color(.3, .5, 0, 1);
 		}
 
 		init_geometry(vertices, colors, num_vertices, &indices[0], indices.size());
@@ -222,7 +226,7 @@ public:
 		Color colors[num_vertices];
 
 		for (auto i = 0; i < num_vertices; ++i) {
-			colors[i] = Color(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, 1);
+			colors[i] = Color(.3, .4, 0, 1);
 		}
 
 		init_geometry(vertices, colors, num_vertices, indices, num_indices);
@@ -284,7 +288,7 @@ public:
 		Color *colors = new Color[num_vertices];
 
 		for (auto i = 0; i < num_vertices; ++i) {
-			colors[i] = Color(0,0,0, 1);
+			colors[i] = Color(.5,.3,0, 1);
 		}
 
 		init_geometry(vertices, colors, num_vertices, &indices[0], indices.size());
@@ -301,16 +305,32 @@ public:
 	}
 };
 
+class Leaf : public Plane {
+public: 
+	Leaf(float x, float y, float z) : Plane (x, y, z, 8, 12, 0){}
+};
+
 class TreeNaive : public Cylinder {
 public:
-	TreeNaive(float x, float y, float z, float girth, float shrinkiness, float splityness) :
-		Cylinder(x, y, z, 10, girth / shrinkiness, girth, 15 * girth / splityness) {
-		auto height = 15 * girth / splityness;
-		if (girth > 2) {
-			for (auto i = 0; i < splityness; ++i) {
-				children.push_back(new TreeNaive(0, height, 0, girth / shrinkiness, shrinkiness, splityness));
-				children.back()->orientation.fromHeadPitchRoll(360*i/splityness, 0, 45);
+	TreeNaive(float x, float y, float z, float base_width, float width_shrink_rate, float width_to_length_rate, float numsplit, float mingirth, float curvature) :
+			Cylinder(x, y, z, 4, base_width * width_shrink_rate, base_width, sqrt(base_width) * width_to_length_rate) {
+
+		auto height = sqrt(base_width) * width_to_length_rate;
+		auto next_width = base_width * width_shrink_rate;
+		if (base_width > mingirth) {
+			float offset = randf()/2;
+			for (auto i = 0; i < numsplit; ++i) {
+				children.push_back(new TreeNaive(0, height*(1.0 - offset), 0, next_width, width_shrink_rate, width_to_length_rate, numsplit + 0.25, mingirth, curvature * 1.1));
+				children.back()->orientation.fromHeadPitchRoll(360 * i / numsplit, 0, curvature + randf()*(curvature/2));
+				offset = 0;
+			}
+		} else {
+			for (auto i = 0; i < numsplit - 2; ++i) {
+				float offset = randf();
+				children.push_back(new Leaf(0, height * offset, 0));
+				children.back()->orientation.fromHeadPitchRoll(360 * i / numsplit, 0, 30 + randf() * 30);
 			}
 		}
 	}
 };
+
