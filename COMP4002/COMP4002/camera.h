@@ -29,35 +29,34 @@ public:
 	Camera(const Camera&);
 	~Camera();
 
-	void SetOrientation(Quaternion);
-	void SetLookAt(Vector3, Vector3, Vector3);
+	void setOrientation(Quaternion);
 
-	void SetPosition(Vector3);
-	void SetPosition(float, float, float);
+	void setPosition(Vector3);
+	void setPosition(float, float, float);
 
-	Vector3 GetPosition() const { return m_position; }
-	Vector3 GetLookAt() const { return m_lookatPosition; }
-	Vector3 GetUp() const { return up; }
-	Quaternion GetRotation() const { return m_quatOrientation; }
+	Vector3 getPosition() const { return m_position; }
+	Vector3 getLookAt() const { return m_lookatPosition; }
+	Vector3 getUp() const { return up; }
+	Quaternion getRotation() const { return m_quatOrientation; }
 
-	void GetViewMatrix(Matrix4&);
+	Matrix4 getViewMatrix();
 
-	void Pitch(float angle) { ApplyRotate(angle, PITCH); }
-	void Roll(float angle)	{ ApplyRotate(angle, ROLL); }
-	void Yaw(float angle) { ApplyRotate(angle, YAW); }
+	void pitch(float angle) { applyRotate(angle, PITCH); }
+	void roll(float angle)	{ applyRotate(angle, ROLL); }
+	void yaw(float angle) { applyRotate(angle, YAW); }
 
-	void Move(float distance) { ApplyTranslation(distance, MOVE); }
-	void Strafe(float distance) { ApplyTranslation(distance, STRAFE); }
-	void Up(float distance) { ApplyTranslation(distance, UPWARDS); }
-	void Scroll(float);
-	void Rotate(float);
+	void move(float distance) { applyTranslation(distance, MOVE); }
+	void strafe(float distance) { applyTranslation(distance, STRAFE); }
+	void climb(float distance) { applyTranslation(distance, UPWARDS); }
+	void scroll(float);
+	void rotate(float);
 	
 
 	void setFollow(Vector3 *, float minHeight = 0.5f, float maxHeight = 2.5f);
 
-	const Vector3 GetAxisZ() const;
-	const Vector3 GetAxisY() const;
-	const Vector3 GetAxisX() const;
+	const Vector3 getAxisZ() const;
+	const Vector3 getAxisY() const;
+	const Vector3 getAxisX() const;
 	bool isFirstPerson() { return firstPerson; }
 	void toggleFirstPerson() { firstPerson = !firstPerson; }
 	void lookUpDown(float);
@@ -79,15 +78,15 @@ private:
 	enum eDir { MOVE, STRAFE, UPWARDS };
 	enum eOrient { PITCH, ROLL, YAW };
 
-	void Update();
-	bool RotateZAxis(Quaternion*, float);
-	bool RotateYAxis(Quaternion*, float);
-	bool RotateXAxis(Quaternion*, float);
-	static Vector3* TransformVector(Quaternion*, Vector3*);
-	void CalculatePosition();
+	void update();
+	bool rotateZAxis(Quaternion*, float);
+	bool rotateYAxis(Quaternion*, float);
+	bool rotateXAxis(Quaternion*, float);
+	static Vector3* transformVector(Quaternion*, Vector3*);
+	void calculatePosition();
 
-	void ApplyTranslation(float, eDir);
-	void ApplyRotate(float, eOrient);
+	void applyTranslation(float, eDir);
+	void applyRotate(float, eOrient);
 };
 
 #endif

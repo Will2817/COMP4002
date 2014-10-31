@@ -236,6 +236,10 @@ public:
     bool operator==(const Matrix4 &rhs) const;
     bool operator!=(const Matrix4 &rhs) const;
 
+	static Matrix4 projection(float fieldOfView, float aspectRatio, float nearPlane, float farPlane);
+	static Matrix4 translation(const float x, const float y, const float z);
+	static Matrix4 identity();
+
     Matrix4 &operator+=(const Matrix4 &rhs);
     Matrix4 &operator-=(const Matrix4 &rhs);
     Matrix4 &operator*=(const Matrix4 &rhs);
@@ -249,7 +253,6 @@ public:
     Matrix4 operator/(float scalar) const;
 
     void fromHeadPitchRoll(float headDegrees, float pitchDegrees, float rollDegrees);
-    void identity();
     void rotate(const Vector3 &axis, float degrees);
     void toHeadPitchRoll(float &headDegrees, float &pitchDegrees, float &rollDegrees) const;
 
@@ -278,6 +281,35 @@ inline Matrix4::Matrix4(float m11, float m12, float m13, float m14,
     mtx[1][0] = m21, mtx[1][1] = m22, mtx[1][2] = m23, mtx[1][3] = m24;
     mtx[2][0] = m31, mtx[2][1] = m32, mtx[2][2] = m33, mtx[2][3] = m34;
     mtx[3][0] = m41, mtx[3][1] = m42, mtx[3][2] = m43, mtx[3][3] = m44;
+}
+
+inline Matrix4 Matrix4::projection(float fieldOfView, float aspectRatio, float nearPlane, float farPlane)
+{
+	float fov2 = Math::degreesToRadians(fieldOfView / 2);
+	float cot = 1.0 / tan(fov2);
+	return Matrix4(
+		cot / aspectRatio, 0, 0, 0,
+		0, cot, 0, 0,
+		0, 0, (nearPlane + farPlane) / (nearPlane - farPlane), -1,
+		0, 0, 2 * nearPlane * farPlane / (nearPlane - farPlane) , 0
+		);
+}
+
+inline Matrix4 Matrix4::translation(const float x, const float y, const float z) {
+	auto mat = Matrix4::identity();
+	mat[0][3] = x;
+	mat[1][3] = y;
+	mat[2][3] = z;
+	return mat;
+}
+
+inline Matrix4 Matrix4::identity() {
+	return Matrix4(
+		1, 0, 0, 0,
+		0, 1, 0, 0,
+		0, 0, 1, 0,
+		0, 0, 0, 1
+		);
 }
 
 inline float *Matrix4::operator[](int row)
@@ -416,14 +448,6 @@ inline Matrix4 Matrix4::operator/(float scalar) const
     Matrix4 tmp(*this);
     tmp /= scalar;
     return tmp;
-}
-
-inline void Matrix4::identity()
-{
-    mtx[0][0] = 1.0f, mtx[0][1] = 0.0f, mtx[0][2] = 0.0f, mtx[0][3] = 0.0f;
-    mtx[1][0] = 0.0f, mtx[1][1] = 1.0f, mtx[1][2] = 0.0f, mtx[1][3] = 0.0f;
-    mtx[2][0] = 0.0f, mtx[2][1] = 0.0f, mtx[2][2] = 1.0f, mtx[2][3] = 0.0f;
-    mtx[3][0] = 0.0f, mtx[3][1] = 0.0f, mtx[3][2] = 0.0f, mtx[3][3] = 1.0f;
 }
 
 //-----------------------------------------------------------------------------

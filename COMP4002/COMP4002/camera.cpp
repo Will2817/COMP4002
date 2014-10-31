@@ -35,28 +35,27 @@ Camera::Camera(const Camera& other) { }
 Camera::~Camera() { }
 
 
-void Camera::SetPosition(float x, float y, float z) {
+void Camera::setPosition(float x, float y, float z) {
 	//m_position = Vector3(x, y, z);
 	upToDate = false;
 	return;
 }
 
 
-void Camera::SetPosition(Vector3 v) {
+void Camera::setPosition(Vector3 v) {
 	//m_position = v;
 	upToDate = false;
 	return;
 }
 
 
-void Camera::SetOrientation(Quaternion quatOrient) {
+void Camera::setOrientation(Quaternion quatOrient) {
 	m_quatOrientation = quatOrient;
 	upToDate = false;
 	return;
 }
 
-
-void Camera::Update() {
+void Camera::update() {
 	Matrix4 matTranslation;
 
 	//m_lookatPosition = m_position - GetAxisZ();
@@ -77,28 +76,13 @@ void Camera::Update() {
 	upToDate = true;
 }
 
-void Camera::display(){
-	Update();
-
-	m_lookatPosition = m_position - GetAxisZ();
-	up = GetAxisY();
-	up.normalize();
-	up = Vector3(0.0f, 1.0f, 0.0f);
-
-	gluLookAt(m_position.x,m_position.y,m_position.z,
-		      m_lookatPosition.x,m_lookatPosition.y,m_lookatPosition.z,
-			  up.x,up.y,up.z);
+Matrix4 Camera::getViewMatrix()
+{
+	if (!upToDate) update();
+	return Matrix4::identity(); //m_viewMatrix;
 }
 
-/*
-void Camera::GetViewMatrix(Matrix4& viewMatrix)
-{
-	if (!upToDate) Update();
-	viewMatrix = m_viewMatrix;
-	return;
-}*/
-
-const Vector3 Camera::GetAxisX() const
+const Vector3 Camera::getAxisX() const
 {
 	Vector3 vAxis;
 
@@ -109,7 +93,7 @@ const Vector3 Camera::GetAxisX() const
 	return vAxis;
 }
 
-const Vector3 Camera::GetAxisY() const
+const Vector3 Camera::getAxisY() const
 {
 	Vector3 vAxis;
 
@@ -120,7 +104,7 @@ const Vector3 Camera::GetAxisY() const
 	return vAxis;
 }
 
-const Vector3 Camera::GetAxisZ() const
+const Vector3 Camera::getAxisZ() const
 {
 	Vector3 vAxis;
 
@@ -131,20 +115,20 @@ const Vector3 Camera::GetAxisZ() const
 	return vAxis;
 }
 
-void Camera::ApplyTranslation(float fDistance, eDir ceDir) {
+void Camera::applyTranslation(float fDistance, eDir ceDir) {
 	Vector3 vDir;
 
 	switch (ceDir) {
 		case MOVE: {
-					   vDir = GetAxisZ();
+					   vDir = getAxisZ();
 					   break;
 		}
 		case STRAFE: {
-						 vDir = GetAxisX();
+						 vDir = getAxisX();
 						 break;
 		}
 		case UPWARDS: {
-						  vDir = GetAxisY();
+						  vDir = getAxisY();
 						  break;
 		}
 	}
@@ -158,13 +142,13 @@ void Camera::ApplyTranslation(float fDistance, eDir ceDir) {
 	return;
 }
 
-bool Camera::RotateXAxis(Quaternion *pOrientation, float fAngle) {
+bool Camera::rotateXAxis(Quaternion *pOrientation, float fAngle) {
 	bool bSuccess = false;
 
 	if (pOrientation) {
 		Quaternion Rotation;
 
-		Rotation.fromAxisAngle(*TransformVector(
+		Rotation.fromAxisAngle(*transformVector(
 			pOrientation,
 			&Vector3(1.0f, 0.0f, 0.0f)
 			), fAngle);
@@ -177,7 +161,7 @@ bool Camera::RotateXAxis(Quaternion *pOrientation, float fAngle) {
 	return bSuccess;
 }
 
-bool Camera::RotateYAxis(Quaternion *pOrientation, float fAngle) {
+bool Camera::rotateYAxis(Quaternion *pOrientation, float fAngle) {
 	bool bSuccess = false;
 
 	if (pOrientation) {
@@ -188,7 +172,7 @@ bool Camera::RotateYAxis(Quaternion *pOrientation, float fAngle) {
 		}
 		else
 		{
-			Rotation.fromAxisAngle(*TransformVector(
+			Rotation.fromAxisAngle(*transformVector(
 				pOrientation,
 				&Vector3(0.0f, 1.0f, 0.0f)
 				), fAngle);
@@ -202,13 +186,13 @@ bool Camera::RotateYAxis(Quaternion *pOrientation, float fAngle) {
 	return bSuccess;
 }
 
-bool Camera::RotateZAxis(Quaternion *pOrientation, float fAngle) {
+bool Camera::rotateZAxis(Quaternion *pOrientation, float fAngle) {
 	bool bSuccess = false;
 
 	if (pOrientation) {
 		Quaternion Rotation;
 
-		Rotation.fromAxisAngle(*TransformVector(
+		Rotation.fromAxisAngle(*transformVector(
 			pOrientation,
 			&Vector3(0.0f, 0.0f, 1.0f)
 			), fAngle);
@@ -221,18 +205,18 @@ bool Camera::RotateZAxis(Quaternion *pOrientation, float fAngle) {
 	return bSuccess;
 }
 
-void Camera::ApplyRotate(float fAngle, eOrient oeOrient) {
+void Camera::applyRotate(float fAngle, eOrient oeOrient) {
 	switch (oeOrient) {
 	case PITCH: {
-					RotateXAxis(&m_quatOrientation, fAngle);
+					rotateXAxis(&m_quatOrientation, fAngle);
 					break;
 	}
 	case YAW: {
-				  RotateYAxis(&m_quatOrientation, fAngle);
+				  rotateYAxis(&m_quatOrientation, fAngle);
 				  break;
 	}
 	case ROLL: {
-				   RotateZAxis(&m_quatOrientation, fAngle);
+				   rotateZAxis(&m_quatOrientation, fAngle);
 				   break;
 	}
 	}
@@ -244,7 +228,7 @@ void Camera::ApplyRotate(float fAngle, eOrient oeOrient) {
 	return;
 }
 
-Vector3* Camera::TransformVector(Quaternion *pOrientation, Vector3 *pAxis) {
+Vector3* Camera::transformVector(Quaternion *pOrientation, Vector3 *pAxis) {
 	Vector3 vNewAxis;
 	Matrix4 matRotation;
 	
