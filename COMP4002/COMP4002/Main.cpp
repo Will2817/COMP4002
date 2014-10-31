@@ -67,7 +67,7 @@ void renderWin(void) {
 
 	glUseProgram(shader);
 
-	auto mvMatrix = cam.getViewMatrix() * projectionMatrix;
+	auto mvMatrix = projectionMatrix * cam.getViewMatrix();
 
 	for (auto it = entities.begin(); it != entities.end(); ++it) {
 		(*it)->render(mvMatrix);
