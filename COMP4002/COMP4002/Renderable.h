@@ -64,13 +64,11 @@ public:
 	}
 
 	Matrix4 matrix() {
-		return orientation.toMatrix4()
-			* Matrix4::translation(position.x, position.y, position.z);
-
+		return orientation.toMatrix4() * Matrix4::translation(position.x, position.y, position.z);
 	}
 
 	void render(Matrix4 &parent) {
-		auto self = matrix() * parent;
+		auto self =  parent * matrix();
 
 		glUniformMatrix4fv(mvpMatrixLoc, 1, false, (GLfloat*)&self);
 		glBindVertexArray(vao);
