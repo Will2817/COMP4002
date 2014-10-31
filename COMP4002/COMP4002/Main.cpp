@@ -49,7 +49,7 @@ void updateState() {
 	if (keys['d'])					cam.strafe(0.2f);
 	if (keys['w'])					cam.move(-0.2);
 	if (keys['s'])					cam.move(0.2);
-
+	/*
 	if (keys['i'])	entities[0]->position.z += 0.1;
 	if (keys['k'])	entities[0]->position.z -= 0.1;
 	if (keys['j'])	entities[0]->position.x += 0.1;
@@ -59,6 +59,7 @@ void updateState() {
 	spin.fromHeadPitchRoll(0, 0, 0.1);
 	entities[0]->children[0]->orientation *= spin;
 	entities[0]->children[1]->orientation *= spin * spin;
+	*/
 
 }
 
@@ -112,6 +113,7 @@ GLuint setupShaders() {
 }
 
 void createEntities() {
+	/*
 	entities.push_back(new Box(100, 0, -100, 60, 30, 30));
 	entities.push_back(new Box(0, 100, -100, 60, 30, 30));
 	entities.push_back(new Box(0, 0, -100, 60, 30, 30));
@@ -123,9 +125,11 @@ void createEntities() {
 	entities[0]->children.push_back(new Sphere(-20, 30, 0, 10));
 
 	entities.push_back(new Sphere(0, 0, -100, 10));
-	entities.push_back(new Plane(0, -10, 0, 1000, 1000, 0));
+	
+	*/
+	entities.push_back(new Plane(0, 0, 0, 1000, 1000, 0));
 	entities.back()->orientation.fromAxisAngle(Vector3(1, 0, 0), 90);
-	entities.push_back(new Cylinder(0, 0, 0, 20,8,10,15));
+	entities.push_back(new TreeNaive(0,0,-200,20,2,3));
 }
 
 int main(int argc, char **argv) {
@@ -154,7 +158,7 @@ int main(int argc, char **argv) {
 	glEnable(GL_DEPTH_TEST);
 	glClearColor(0, 1.0, 1.0, 1.0);
 
-	cam.setPosition(100, 100, 0);
+	cam.setPosition(100, 100, 10);
 
 	shader = setupShaders();
 	createEntities();

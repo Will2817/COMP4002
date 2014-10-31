@@ -284,7 +284,7 @@ public:
 		Color *colors = new Color[num_vertices];
 
 		for (auto i = 0; i < num_vertices; ++i) {
-			colors[i] = Color(1,0,0, 1);
+			colors[i] = Color(0,0,0, 1);
 		}
 
 		init_geometry(vertices, colors, num_vertices, &indices[0], indices.size());
@@ -298,5 +298,19 @@ public:
 			GL_UNSIGNED_SHORT,   // type
 			(void*)0             // element array buffer offset
 			);
+	}
+};
+
+class TreeNaive : public Cylinder {
+public:
+	TreeNaive(float x, float y, float z, float girth, float shrinkiness, float splityness) :
+		Cylinder(x, y, z, 10, girth / shrinkiness, girth, 15 * girth / splityness) {
+		auto height = 15 * girth / splityness;
+		if (girth > 2) {
+			for (auto i = 0; i < splityness; ++i) {
+				children.push_back(new TreeNaive(0, height, 0, girth / shrinkiness, shrinkiness, splityness));
+				children.back()->orientation.fromHeadPitchRoll(360*i/splityness, 0, 45);
+			}
+		}
 	}
 };
