@@ -11,7 +11,7 @@
 #include "Renderable.h"
 
 // Shader program
-GLuint shader;
+GLuint shader1,shader2;
 
 Camera cam;
 Matrix4 projectionMatrix;
@@ -68,8 +68,6 @@ void renderWin(void) {
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	glUseProgram(shader);
-
 	auto mvMatrix = projectionMatrix * cam.getViewMatrix();
 
 	for (auto it = entities.begin(); it != entities.end(); ++it) {
@@ -95,19 +93,14 @@ void onSpecialUp(int key, int x, int y) {
 	specials[key] = false;
 }
 
-GLuint setupShaders() {
+GLuint setupShaders(char* vert,char* frag) {
 	GLuint p;
 
 	Shader shader = Shader();
-	if (shader.createShaderProgram("shader.vert", "shader.frag", &p)) {
+	if (shader.createShaderProgram(vert,frag, &p)) {
 		printf("Couldn't create shader");
 		exit(-1);
 	}
-
-	vertexLoc = glGetAttribLocation(p, "position");
-	colorLoc = glGetAttribLocation(p, "color");
-
-	mvpMatrixLoc = glGetUniformLocation(p, "mvpMatrix");
 
 	return(p);
 }
@@ -127,9 +120,9 @@ void createEntities() {
 	entities.push_back(new Sphere(0, 0, -100, 10));
 	
 	*/
-	entities.push_back(new Plane(0, 0, 0, 1000, 1000, 0));
+	entities.push_back(new Plane(0, 0, 0, 1000, 1000, 0,shader2,true));
 	entities.back()->orientation.fromAxisAngle(Vector3(1, 0, 0), 90);
-	entities.push_back(new TreeNaive(0,0,-200,20,2,3));
+	entities.push_back(new TreeNaive(0,0,-200,40,2,3,shader1));
 }
 
 int main(int argc, char **argv) {
@@ -155,12 +148,14 @@ int main(int argc, char **argv) {
 		exit(1);
 	}
 
+	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_DEPTH_TEST);
 	glClearColor(0, 1.0, 1.0, 1.0);
 
 	cam.setPosition(100, 100, 10);
 
-	shader = setupShaders();
+	shader1 = setupShaders("shader.vert", "shader.frag");
+	shader2 = setupShaders("shader2.vert", "shader2.frag");
 	createEntities();
 
 	glutMainLoop();
