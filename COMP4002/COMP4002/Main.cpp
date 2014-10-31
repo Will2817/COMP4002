@@ -55,8 +55,10 @@ void updateState() {
 	if (keys['j'])	entities[0]->position.x += 0.1;
 	if (keys['l'])	entities[0]->position.x -= 0.1;
 
-	//entities[0]->children[0]->orientation.y += Math::degreesToRadians(0.1);
-	//entities[0]->children[1]->orientation.y -= Math::degreesToRadians(0.2);
+	auto spin = Quaternion();
+	spin.fromHeadPitchRoll(0, 0, 0.1);
+	entities[0]->children[0]->orientation *= spin;
+	entities[0]->children[1]->orientation *= spin * spin;
 
 }
 
