@@ -41,14 +41,14 @@ void resizeWin(int w, int h) {
 }
 
 void updateState() {
-	if (specials[GLUT_KEY_LEFT])	cam.yaw(Math::degreesToRadians(-0.1));
-	if (specials[GLUT_KEY_RIGHT])	cam.yaw(Math::degreesToRadians(0.1));
-	if (specials[GLUT_KEY_UP])		cam.pitch(Math::degreesToRadians(-0.1));
-	if (specials[GLUT_KEY_DOWN])	cam.pitch(Math::degreesToRadians(0.1));
-	if (keys['a'])					cam.roll(Math::degreesToRadians(-0.1));
-	if (keys['d'])					cam.roll(Math::degreesToRadians(0.1));
-	if (keys['w'])					cam.move(0.1);
-	if (keys['s'])					cam.move(-0.1);
+	if (specials[GLUT_KEY_LEFT])	cam.yaw(Math::degreesToRadians(-2));
+	if (specials[GLUT_KEY_RIGHT])	cam.yaw(Math::degreesToRadians(2));
+	if (specials[GLUT_KEY_UP])		cam.pitch(Math::degreesToRadians(-2));
+	if (specials[GLUT_KEY_DOWN])	cam.pitch(Math::degreesToRadians(2));
+	if (keys['a'])					cam.roll(Math::degreesToRadians(-2));
+	if (keys['d'])					cam.roll(Math::degreesToRadians(2));
+	if (keys['w'])					cam.move(-1);
+	if (keys['s'])					cam.move(1);
 
 	if (keys['i'])	entities[0]->position.z += 0.1;
 	if (keys['k'])	entities[0]->position.z -= 0.1;
@@ -67,7 +67,7 @@ void renderWin(void) {
 
 	glUseProgram(shader);
 
-	auto mvMatrix = cam.getViewMatrix() * projectionMatrix;
+	auto mvMatrix = projectionMatrix * cam.getViewMatrix();
 
 	for (auto it = entities.begin(); it != entities.end(); ++it) {
 		(*it)->render(mvMatrix);
