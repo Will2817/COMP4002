@@ -71,7 +71,7 @@ void Camera::update() {
 	matRotation = m_quatOrientation.inverse().toMatrix4();
 
 	// 2) Apply rotation & translation matrix at view matrix
-	m_viewMatrix = matTranslation * matRotation;
+	m_viewMatrix = matRotation * matTranslation;
 
 	upToDate = true;
 }
