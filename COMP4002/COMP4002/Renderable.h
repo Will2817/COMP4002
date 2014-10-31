@@ -238,3 +238,65 @@ public:
 			);
 	}
 };
+
+class Cylinder: public Renderable {
+public:
+	int numindices;
+	Cylinder(float x, float y, float z, int sectors, float topradius, float botradius, float length) {
+		position = Vector3(x, y, z);
+		auto const num_vertices = sectors * 2 + 2;
+		auto S = 1. / (float)(sectors - 1);
+
+		Vertex* vertices = new Vertex[num_vertices];
+
+		for (auto s = 0; s < sectors; s++) {
+			auto x = cos(2 * Math::PI * s * S);
+			auto z = sin(2 * Math::PI * s * S);
+
+			vertices[s] = Vertex(x * topradius, length, z * topradius, 1);
+			vertices[sectors + s] = Vertex(x * botradius, 0, z * botradius, 1);
+		}
+
+		std::vector<GLushort> indices;
+		numindices = (sectors - 2) * 3 * 2 + sectors * 6;
+		indices.resize(numindices);
+		auto i = indices.begin();
+		for (auto s = 1; s < sectors - 1; s++) {//top
+			*i++ = 0;
+			*i++ = s;
+			*i++ = s + 1;
+		}
+		for (auto s = 1; s < sectors - 1; s++) {//bottom
+			*i++ = sectors;
+			*i++ = sectors + s;
+			*i++ = sectors + s + 1;
+		}
+		for (auto s = 0; s < sectors; s++) {//side
+			*i++ = s;
+			*i++ = sectors + s;
+			*i++ = s + 1;
+			*i++ = s + 1;
+			*i++ = sectors + s;
+			*i++ = sectors + s + 1;
+		}
+
+
+		Color *colors = new Color[num_vertices];
+
+		for (auto i = 0; i < num_vertices; ++i) {
+			colors[i] = Color(1,0,0, 1);
+		}
+
+		init_geometry(vertices, colors, num_vertices, &indices[0], indices.size());
+	}
+
+	void render_self(Matrix4 &self) {
+		// Draw the quads
+		glDrawElements(
+			GL_TRIANGLES,            // mode
+			numindices,		     // count
+			GL_UNSIGNED_SHORT,   // type
+			(void*)0             // element array buffer offset
+			);
+	}
+};

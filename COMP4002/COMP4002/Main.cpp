@@ -125,6 +125,7 @@ void createEntities() {
 	entities.push_back(new Sphere(0, 0, -100, 10));
 	entities.push_back(new Plane(0, -10, 0, 1000, 1000, 0));
 	entities.back()->orientation.fromAxisAngle(Vector3(1, 0, 0), 90);
+	entities.push_back(new Cylinder(0, 0, 0, 20,8,10,15));
 }
 
 int main(int argc, char **argv) {
