@@ -36,14 +36,14 @@ Camera::~Camera() { }
 
 
 void Camera::setPosition(float x, float y, float z) {
-	//m_position = Vector3(x, y, z);
+	m_position = Vector3(x, y, z);
 	upToDate = false;
 	return;
 }
 
 
 void Camera::setPosition(Vector3 v) {
-	//m_position = v;
+	m_position = v;
 	upToDate = false;
 	return;
 }
