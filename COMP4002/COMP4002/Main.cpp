@@ -37,7 +37,7 @@ void resizeWin(int w, int h) {
 	glViewport(0, 0, w, h);
 
 	ratio = (1.0f * w) / h;
-	projectionMatrix = Matrix4::projection(60, ratio, 1, 1000);
+	projectionMatrix = Matrix4::projection(60, ratio, 1, 10000);
 }
 
 void updateState() {
@@ -55,8 +55,8 @@ void updateState() {
 	if (keys['j'])	entities[0]->position.x += 0.1;
 	if (keys['l'])	entities[0]->position.x -= 0.1;
 
-	entities[0]->children[0]->orientation.y += Math::degreesToRadians(0.1);
-	entities[0]->children[1]->orientation.y -= Math::degreesToRadians(0.2);
+	//entities[0]->children[0]->orientation.y += Math::degreesToRadians(0.1);
+	//entities[0]->children[1]->orientation.y -= Math::degreesToRadians(0.2);
 
 }
 
@@ -67,7 +67,7 @@ void renderWin(void) {
 
 	glUseProgram(shader);
 
-	auto mvMatrix = projectionMatrix * cam.getViewMatrix();
+	auto mvMatrix = cam.getViewMatrix() * projectionMatrix;
 
 	for (auto it = entities.begin(); it != entities.end(); ++it) {
 		(*it)->render(mvMatrix);
@@ -110,8 +110,10 @@ GLuint setupShaders() {
 }
 
 void createEntities() {
-	entities.push_back(new Box(1000, 0, -100, 60, 30, 30));
+	entities.push_back(new Box(100, 0, -100, 60, 30, 30));
 	entities.push_back(new Box(0, 100, -100, 60, 30, 30));
+	entities.push_back(new Box(0, 0, -100, 60, 30, 30));
+	entities.push_back(new Box(0, 0, 100, 60, 30, 30));
 	entities.push_back(new Box(100, 0, 100, 60, 30, 30));
 	entities.push_back(new Box(0, 100, 100, 60, 30, 30));
 	entities.push_back(new Box(100, 100, 100, 60, 30, 30));

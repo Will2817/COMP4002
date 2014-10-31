@@ -32,7 +32,7 @@ class Renderable {
 public:
 	GLuint vao, vbo, vio;
 	Vector3 position = Vector3(0, 0, 0);
-	Quaternion orientation = Quaternion();
+	Quaternion orientation = Quaternion::IDENTITY;
 	std::vector<Renderable*> children = std::vector<Renderable*>();
 
 	void init_geometry(Vertex* vertices, Color* colors, int num_vertices, GLushort* indices, int num_indices) {
@@ -64,13 +64,13 @@ public:
 	}
 
 	Matrix4 matrix() {
-		return orientation.toMatrix4() * Matrix4::translation(position.x, position.y, position.z);
+		return Matrix4::translation(position.x, position.y, position.z) * orientation.toMatrix4();
 	}
 
 	void render(Matrix4 &parent) {
 		auto self =  parent * matrix();
 
-		glUniformMatrix4fv(mvpMatrixLoc, 1, false, (GLfloat*)&self);
+		glUniformMatrix4fv(mvpMatrixLoc, 1, true, (GLfloat*)&self);
 		glBindVertexArray(vao);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vio);
 

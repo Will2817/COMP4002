@@ -242,6 +242,8 @@ void Quaternion::toAxisAngle(Vector3 &axis, float &degrees) const
 
 Matrix4 Quaternion::toMatrix4() const
 {
+
+
     // Converts this quaternion to a rotation matrix.
     //
     //  | 1 - 2(y^2 + z^2)	2(xy + wz)			2(xz - wy)			0  |

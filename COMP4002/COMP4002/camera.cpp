@@ -79,7 +79,7 @@ void Camera::update() {
 Matrix4 Camera::getViewMatrix()
 {
 	if (!upToDate) update();
-	return Matrix4::identity(); //m_viewMatrix;
+	return m_viewMatrix;
 }
 
 const Vector3 Camera::getAxisX() const

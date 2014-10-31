@@ -290,8 +290,8 @@ inline Matrix4 Matrix4::projection(float fieldOfView, float aspectRatio, float n
 	return Matrix4(
 		cot / aspectRatio, 0, 0, 0,
 		0, cot, 0, 0,
-		0, 0, (nearPlane + farPlane) / (nearPlane - farPlane), -1,
-		0, 0, 2 * nearPlane * farPlane / (nearPlane - farPlane) , 0
+		0, 0, (nearPlane + farPlane) / (nearPlane - farPlane), 2 * nearPlane * farPlane / (nearPlane - farPlane),
+		0, 0, -1, 0
 		);
 }
 
