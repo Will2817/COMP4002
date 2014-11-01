@@ -44,7 +44,6 @@ struct Texture2D {
 int bark_img_width, bark_img_height;
 unsigned char* bark_img;
 
-
 class Renderable {
 public:
 	GLuint vao, vbo, vio;
@@ -52,9 +51,6 @@ public:
 	bool isTextureShader;
 	GLuint textureID;
 	GLuint mvpMatrixLoc, vertexLoc, colorLoc, textUnitLoc, textCoordLoc;
-	Vector3 position = Vector3(0, 0, 0);
-	Quaternion orientation = Quaternion::IDENTITY;
-	std::vector<Renderable*> children = std::vector<Renderable*>();
 
 	void init_geometry(Vertex* vertices, Color* colors, int num_vertices, GLushort* indices, int num_indices, Texture2D *tCoords = 0) {
 		GLuint buffers[3];
@@ -106,32 +102,47 @@ public:
 		mvpMatrixLoc = glGetUniformLocation(shader, "mvpMatrix");
 	}
 
+	virtual void render_self(Matrix4 &self) = 0;
+};
+
+class Entity {
+public:
+	Vector3 position = Vector3(0, 0, 0);
+	Quaternion orientation = Quaternion::IDENTITY;
+	Renderable* renderable;
+	std::vector<Entity*> children = std::vector<Entity*>();
+
+	Entity(float x, float y, float z, Renderable* renderable) {
+		position = Vector3(x, y, z);
+		this->renderable = renderable;
+	}
+
 	Matrix4 matrix() {
 		return Matrix4::translation(position.x, position.y, position.z) * orientation.toMatrix4();
 	}
 
 	void render(Matrix4 &parent) {
-		auto self =  parent * matrix();
-		glUseProgram(shader);
-		glUniformMatrix4fv(mvpMatrixLoc, 1, true, (GLfloat*)&self);
-		glBindVertexArray(vao);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vio);
+		auto self = parent * matrix();
+		glUseProgram(renderable->shader);
+		glUniformMatrix4fv(renderable->mvpMatrixLoc, 1, true, (GLfloat*)&self);
+		glBindVertexArray(renderable->vao);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderable->vio);
 
-		render_self(self);
+		renderable->render_self(self);
 
 		render_children(self);
 	}
-
-	virtual void render_self(Matrix4 &self) = 0;
 
 	void render_children(Matrix4 self) {
 		for (auto it = children.begin(); it != children.end(); ++it) {
 			(*it)->render(self);
 		}
 	}
+
 };
 
-class Sphere : public Renderable {
+/*
+class Sphere : public Entity {
 public:
 	Sphere(float x, float y, float z, float radius) {
 		position = Vector3(x, y, z);
@@ -236,12 +247,11 @@ public:
 			);
 	}
 };
-
+*/
 class Plane :public Renderable
 {
 public:
-	Plane(float x, float y, float z, float width, float height, float depth, GLuint shaderid, bool useTexture = false) {
-		position = Vector3(x, y, z);
+	Plane(float width, float height, float depth, GLuint shaderid, bool useTexture = false) {
 		shader = shaderid;
 		isTextureShader = useTexture;
 		auto const num_vertices = 8;
@@ -302,8 +312,7 @@ public:
 class Cylinder: public Renderable {
 public:
 	int numindices;
-	Cylinder(float x, float y, float z, int sectors, float topradius, float botradius, float length, GLuint shaderid, bool useTexture=false) {
-		position = Vector3(x, y, z);
+	Cylinder(int sectors, float topradius, float botradius, float length, GLuint shaderid, bool useTexture=false) {
 		shader = shaderid;
 		isTextureShader = useTexture;
 		auto const num_vertices = sectors * 2 + 2;
@@ -380,30 +389,44 @@ public:
 
 class Leaf : public Plane {
 public: 
-	Leaf(float x, float y, float z) : Plane (x, y, z, 8, 12, 0, shader1, false){}
+	Leaf() : Plane (8, 12, 0, shader1, false){}
 };
 
-class TreeNaive : public Cylinder {
+class TreeNaive {
 public:
-	TreeNaive(float x, float y, float z, float base_width, float width_shrink_rate, float width_to_length_rate, float numsplit, float mingirth, float curvature, GLuint shaderid, bool useTexture = false) :
-			Cylinder(x, y, z, 4, base_width * width_shrink_rate, base_width, sqrt(base_width) * width_to_length_rate, shaderid, useTexture) {
-
+	std::vector<Renderable*> renderables;
+	Entity* root;
+	TreeNaive(float x, float y, float z, float base_width, float width_shrink_rate, float width_to_length_rate, float numsplit, float mingirth, float curvature, GLuint shaderid, bool useTexture = false) {
+		root = makeRecursive(x, y, z, base_width, width_shrink_rate, width_to_length_rate, numsplit, mingirth, curvature, shaderid, useTexture, 0);
+	}
+	
+	Entity* makeRecursive(float x, float y, float z, float base_width, float width_shrink_rate, float width_to_length_rate, float numsplit, float mingirth, float curvature, GLuint shaderid, bool useTexture, int depth) {
 		auto height = sqrt(base_width) * width_to_length_rate;
 		auto next_width = base_width * width_shrink_rate;
+		if (depth == renderables.size()) {
+			if (base_width > mingirth) {
+				renderables.push_back(new Cylinder(4, next_width, base_width, height, shaderid, useTexture));
+			}
+			else {
+				renderables.push_back(new Leaf());
+			}
+		}
+		auto part = new Entity(x, y, z, renderables[depth]);
 		if (base_width > mingirth) {
 			float offset = randf()/2;
 			for (auto i = 0; i < numsplit; ++i) {
-				children.push_back(new TreeNaive(0, height*(1.0 - offset), 0, next_width, width_shrink_rate, width_to_length_rate, numsplit + 0.25, mingirth, curvature * 1.1, shaderid, useTexture));
-				children.back()->orientation.fromHeadPitchRoll(360 * i / numsplit, 0, curvature + randf()*(curvature/2));
+				part->children.push_back(makeRecursive(0, height*(1.0 - offset), 0, next_width, width_shrink_rate, width_to_length_rate, numsplit + 0.25, mingirth, curvature * 1.1, shaderid, useTexture, depth + 1));
+				part->children.back()->orientation.fromHeadPitchRoll(360 / numsplit * i, 0, curvature + randf()*(curvature/2));
 				offset = 0;
 			}
 		} else {
 			for (auto i = 0; i < numsplit - 2; ++i) {
 				float offset = randf();
-				children.push_back(new Leaf(0, height * offset, 0));
-				children.back()->orientation.fromHeadPitchRoll(360 * i / numsplit, 0, 30 + randf() * 30);
+				part->children.push_back(new Entity(0, height*(1.0 - offset), 0, renderables[depth]));
+				part->children.back()->orientation.fromHeadPitchRoll(360 * i / numsplit, 0, 30 + randf() * 30);
 			}
 		}
+		return part;
 	}
 };
 

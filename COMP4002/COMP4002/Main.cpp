@@ -14,7 +14,7 @@
 
 Camera cam;
 Matrix4 projectionMatrix;
-std::vector<Renderable*> entities = std::vector<Renderable*>();
+std::vector<Entity*> entities = std::vector<Entity*>();
 bool keys[128] = { false };
 bool specials[256] = { false };
 
@@ -126,9 +126,12 @@ void createEntities() {
 	entities.push_back(new Sphere(0, 0, -100, 10));
 	
 	*/
-	entities.push_back(new Plane(0, 0, 0, 1000, 1000, 0,shader1));
+	entities.push_back(new Entity(0, 0, 0, new Plane(2000, 2000, 0, shader1)));
 	entities.back()->orientation.fromAxisAngle(Vector3(1, 0, 0), 90);
-	entities.push_back(new TreeNaive(0, 0, -400, 15, 0.5, 20, 3, 1, 30, shader2, true));
+	for (auto i = 0; i < 5; ++i) {
+		auto tree = new TreeNaive(-400 + i*200, 0, -400, 15, 0.5, 20, 3, 1, 30, shader2, true);
+		entities.push_back(tree->root);
+	}
 }
 
 int main(int argc, char **argv) {
@@ -167,7 +170,6 @@ int main(int argc, char **argv) {
 	bark_img = SOIL_load_image("nature_bark.jpg", &bark_img_width, &bark_img_height, NULL, 0);
 	createEntities();
 
-	createEntities();
 	glutMainLoop();
 
 	return(0);
