@@ -315,18 +315,20 @@ public:
 	Cylinder(int sectors, float topradius, float botradius, float length, GLuint shaderid, bool useTexture=false) {
 		shader = shaderid;
 		isTextureShader = useTexture;
-		auto const num_vertices = sectors * 2 + 2;
-		auto S = 1. / (float)(sectors - 1);
+		auto const num_vertices = (sectors+1) * 2;
+		auto half = num_vertices / 2;
+		auto S = 1. / (float)(sectors);
 
 		Vertex* vertices = new Vertex[num_vertices];
 
-		for (auto s = 0; s < sectors; s++) {
+		for (auto s = 0; s < half; s++) {
 			auto x = cos(2 * Math::PI * s * S);
 			auto z = sin(2 * Math::PI * s * S);
 
-			vertices[s] = Vertex(x * topradius, length, z * topradius, 1);
-			vertices[sectors + s] = Vertex(x * botradius, 0, z * botradius, 1);
+			vertices[s]        = Vertex(x * topradius, length, z * topradius, 1);
+			vertices[half + s] = Vertex(x * botradius, 0, z * botradius, 1);
 		}
+
 
 		std::vector<GLushort> indices;
 		numindices = (sectors - 2) * 3 * 2 + sectors * 6;
@@ -338,17 +340,17 @@ public:
 			*i++ = s + 1;
 		}
 		for (auto s = 1; s < sectors - 1; s++) {//bottom
-			*i++ = sectors;
-			*i++ = sectors + s;
-			*i++ = sectors + s + 1;
+			*i++ = half;
+			*i++ = half + s;
+			*i++ = half + s + 1;
 		}
 		for (auto s = 0; s < sectors; s++) {//side
 			*i++ = s;
-			*i++ = sectors + s;
+			*i++ = half + s;
 			*i++ = s + 1;
 			*i++ = s + 1;
-			*i++ = sectors + s;
-			*i++ = sectors + s + 1;
+			*i++ = half + s;
+			*i++ = half + s + 1;
 		}
 
 
@@ -358,12 +360,12 @@ public:
 			colors[i] = Color(0.5,0.3,0, 1);
 		}
 
-		Texture2D *tCoords = new Texture2D[numindices];
-		for (auto i = 0; i < sectors; ++i){
+		Texture2D *tCoords = new Texture2D[num_vertices];
+		for (auto i = 0; i < half; i++){
 			tCoords[i].u = S*i;
 			tCoords[i].v = 0;
-			tCoords[i+sectors].u = S*i;
-			tCoords[i+sectors].v = 1;
+			tCoords[i + half].u = S*i;
+			tCoords[i + half].v = 1;
 		}
 
 		init_geometry(vertices, colors, num_vertices, &indices[0], indices.size(),tCoords);
