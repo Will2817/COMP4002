@@ -120,9 +120,10 @@ void createEntities() {
 	entities.push_back(new Sphere(0, 0, -100, 10));
 	
 	*/
-	entities.push_back(new Plane(0, 0, 0, 1000, 1000, 0,shader2,true));
+	entities.push_back(new Plane(0, 0, 0, 1000, 1000, 0,shader1));
 	entities.back()->orientation.fromAxisAngle(Vector3(1, 0, 0), 90);
-	entities.push_back(new TreeNaive(0,0,-200,40,2,3,shader1));
+	//entities.push_back(new Cylinder(0, 0, 0, 10, 8, 10, 15, shader2, true));
+	entities.push_back(new TreeNaive(0,0,-200,40,2,3,shader2,true));
 }
 
 int main(int argc, char **argv) {
@@ -156,6 +157,7 @@ int main(int argc, char **argv) {
 
 	shader1 = setupShaders("shader.vert", "shader.frag");
 	shader2 = setupShaders("shader2.vert", "shader2.frag");
+	bark_img = SOIL_load_image("nature_bark.jpg", &bark_img_width, &bark_img_height, NULL, 0);
 	createEntities();
 
 	glutMainLoop();

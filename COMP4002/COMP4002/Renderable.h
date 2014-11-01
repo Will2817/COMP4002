@@ -35,6 +35,10 @@ struct Texture2D {
 	}
 };
 
+int bark_img_width, bark_img_height;
+unsigned char* bark_img;
+
+
 class Renderable {
 public:
 	GLuint vao, vbo, vio;
@@ -71,24 +75,10 @@ public:
 			glEnableVertexAttribArray(textCoordLoc);
 			glVertexAttribPointer(textCoordLoc, 2, GL_FLOAT, 0, 0, 0);
 
-			/*GLuint textureID = SOIL_load_OGL_texture
-				(
-				"nature_bark.png",
-				SOIL_LOAD_AUTO,
-				SOIL_CREATE_NEW_ID,
-				SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y | SOIL_FLAG_NTSC_SAFE_RGB | SOIL_FLAG_COMPRESS_TO_DXT
-				);
-			glGenTextures(1, &textureID);
-			glBindTexture(GL_TEXTURE_2D, textureID);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 600, 600, 0, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)tex_2d);*/
-			int img_width, img_height;
-			unsigned char* img = SOIL_load_image("nature_bark.jpg", &img_width, &img_height, NULL, 0);
-
 			glGenTextures(1, &textureID);
 			glBindTexture(GL_TEXTURE_2D, textureID);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, img_width, img_height, 0, GL_RGB, GL_UNSIGNED_BYTE, img);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, bark_img_width, bark_img_height, 0, GL_RGB, GL_UNSIGNED_BYTE, bark_img);
 			
 			textUnitLoc = glGetAttribLocation(shader, "texUnit");
 		}
@@ -353,10 +343,25 @@ public:
 			colors[i] = Color(0.5,0.3,0, 1);
 		}
 
-		init_geometry(vertices, colors, num_vertices, &indices[0], indices.size());
+		Texture2D *tCoords = new Texture2D[numindices];
+		for (auto i = 0; i < sectors; ++i){
+			tCoords[i].u = S*i;
+			tCoords[i].v = 0;
+			tCoords[i+sectors].u = S*i;
+			tCoords[i+sectors].v = 1;
+		}
+
+		init_geometry(vertices, colors, num_vertices, &indices[0], indices.size(),tCoords);
 	}
 
 	void render_self(Matrix4 &self) {
+		if (isTextureShader)
+		{
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, textureID);
+			glUniform1i(textUnitLoc, 0);
+		}
+
 		// Draw the quads
 		glDrawElements(
 			GL_TRIANGLES,            // mode
