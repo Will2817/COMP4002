@@ -3,6 +3,7 @@
 #include <glew.h>
 #include <math.h>
 #include "mathlib.h"
+#include <SOIL.h>
 
 struct Vertex {
 	float x, y, z, w;
@@ -28,18 +29,34 @@ float randf() {
 	return ((float)rand()) / (float) RAND_MAX;
 }
 
-GLuint mvpMatrixLoc;
-GLuint vertexLoc;
-GLuint colorLoc;
+GLuint shader1, shader2;
+
+struct Texture2D {
+	float u, v;
+	
+	Texture2D() {}
+
+	Texture2D(float _u, float _v){
+		u = _u; v = _v;
+	}
+};
+
+int bark_img_width, bark_img_height;
+unsigned char* bark_img;
+
 
 class Renderable {
 public:
 	GLuint vao, vbo, vio;
+	GLuint shader;
+	bool isTextureShader;
+	GLuint textureID;
+	GLuint mvpMatrixLoc, vertexLoc, colorLoc, textUnitLoc, textCoordLoc;
 	Vector3 position = Vector3(0, 0, 0);
 	Quaternion orientation = Quaternion::IDENTITY;
 	std::vector<Renderable*> children = std::vector<Renderable*>();
 
-	void init_geometry(Vertex* vertices, Color* colors, int num_vertices, GLushort* indices, int num_indices) {
+	void init_geometry(Vertex* vertices, Color* colors, int num_vertices, GLushort* indices, int num_indices, Texture2D *tCoords = 0) {
 		GLuint buffers[3];
 
 		glGenVertexArrays(1, &vao);
@@ -49,22 +66,44 @@ public:
 		glGenBuffers(3, buffers);
 
 		// bind buffer for vertices and copy data into buffer
+		vertexLoc = glGetAttribLocation(shader, "position");
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
 		glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(Vertex), vertices, GL_STATIC_DRAW);
 		glEnableVertexAttribArray(vertexLoc);
 		glVertexAttribPointer(vertexLoc, 4, GL_FLOAT, 0, 0, 0);
 
 		// bind buffer for colors and copy data into buffer
-		glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
-		glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(Color), colors, GL_STATIC_DRAW);
-		glEnableVertexAttribArray(colorLoc);
-		glVertexAttribPointer(colorLoc, 4, GL_FLOAT, 0, 0, 0);
-		vbo = buffers[1];
+		if (isTextureShader)
+		{
+			textCoordLoc = glGetAttribLocation(shader, "textCoord");
+			glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
+			glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(Texture2D), tCoords, GL_STATIC_DRAW);
+			glEnableVertexAttribArray(textCoordLoc);
+			glVertexAttribPointer(textCoordLoc, 2, GL_FLOAT, 0, 0, 0);
+
+			glGenTextures(1, &textureID);
+			glBindTexture(GL_TEXTURE_2D, textureID);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, bark_img_width, bark_img_height, 0, GL_RGB, GL_UNSIGNED_BYTE, bark_img);
+			
+			textUnitLoc = glGetAttribLocation(shader, "texUnit");
+		}
+		else
+		{
+			colorLoc = glGetAttribLocation(shader, "color");
+			glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
+			glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(Color), colors, GL_STATIC_DRAW);
+			glEnableVertexAttribArray(colorLoc);
+			glVertexAttribPointer(colorLoc, 4, GL_FLOAT, 0, 0, 0);
+			vbo = buffers[1];
+		}
 
 		// bind buffer for indices and copy data into buffer
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[2]);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, num_indices * sizeof(GLushort), indices, GL_STATIC_DRAW);
 		vio = buffers[2];
+
+		mvpMatrixLoc = glGetUniformLocation(shader, "mvpMatrix");
 	}
 
 	Matrix4 matrix() {
@@ -73,7 +112,7 @@ public:
 
 	void render(Matrix4 &parent) {
 		auto self =  parent * matrix();
-
+		glUseProgram(shader);
 		glUniformMatrix4fv(mvpMatrixLoc, 1, true, (GLfloat*)&self);
 		glBindVertexArray(vao);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vio);
@@ -201,8 +240,10 @@ public:
 class Plane :public Renderable
 {
 public:
-	Plane(float x, float y, float z, float width, float height, float depth) {
+	Plane(float x, float y, float z, float width, float height, float depth, GLuint shaderid, bool useTexture = false) {
 		position = Vector3(x, y, z);
+		shader = shaderid;
+		isTextureShader = useTexture;
 		auto const num_vertices = 8;
 		auto const num_indices = 24;
 
@@ -226,14 +267,29 @@ public:
 		Color colors[num_vertices];
 
 		for (auto i = 0; i < num_vertices; ++i) {
-			colors[i] = Color(.3, .4, 0, 1);
+			colors[i] = Color(0.3,0.5,0,1);
 		}
 
-		init_geometry(vertices, colors, num_vertices, indices, num_indices);
+		Texture2D tCoords[4] = {
+			Texture2D(0,1),
+			Texture2D(0,0),
+			Texture2D(1,0),
+			Texture2D(1,1)
+		};
+
+		init_geometry(vertices, colors, num_vertices, indices, num_indices, tCoords);
 	}
 
 	void render_self(Matrix4 &self) {
 		// Draw the quads
+		
+		if (isTextureShader)
+		{
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, textureID);
+			glUniform1i(textUnitLoc, 0);
+		}
+
 		glDrawElements(
 			GL_QUADS,            // mode
 			24,					 // count
@@ -246,8 +302,10 @@ public:
 class Cylinder: public Renderable {
 public:
 	int numindices;
-	Cylinder(float x, float y, float z, int sectors, float topradius, float botradius, float length) {
+	Cylinder(float x, float y, float z, int sectors, float topradius, float botradius, float length, GLuint shaderid, bool useTexture=false) {
 		position = Vector3(x, y, z);
+		shader = shaderid;
+		isTextureShader = useTexture;
 		auto const num_vertices = sectors * 2 + 2;
 		auto S = 1. / (float)(sectors - 1);
 
@@ -288,13 +346,28 @@ public:
 		Color *colors = new Color[num_vertices];
 
 		for (auto i = 0; i < num_vertices; ++i) {
-			colors[i] = Color(.5,.3,0, 1);
+			colors[i] = Color(0.5,0.3,0, 1);
 		}
 
-		init_geometry(vertices, colors, num_vertices, &indices[0], indices.size());
+		Texture2D *tCoords = new Texture2D[numindices];
+		for (auto i = 0; i < sectors; ++i){
+			tCoords[i].u = S*i;
+			tCoords[i].v = 0;
+			tCoords[i+sectors].u = S*i;
+			tCoords[i+sectors].v = 1;
+		}
+
+		init_geometry(vertices, colors, num_vertices, &indices[0], indices.size(),tCoords);
 	}
 
 	void render_self(Matrix4 &self) {
+		if (isTextureShader)
+		{
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, textureID);
+			glUniform1i(textUnitLoc, 0);
+		}
+
 		// Draw the quads
 		glDrawElements(
 			GL_TRIANGLES,            // mode
@@ -307,20 +380,20 @@ public:
 
 class Leaf : public Plane {
 public: 
-	Leaf(float x, float y, float z) : Plane (x, y, z, 8, 12, 0){}
+	Leaf(float x, float y, float z) : Plane (x, y, z, 8, 12, 0, shader1, false){}
 };
 
 class TreeNaive : public Cylinder {
 public:
-	TreeNaive(float x, float y, float z, float base_width, float width_shrink_rate, float width_to_length_rate, float numsplit, float mingirth, float curvature) :
-			Cylinder(x, y, z, 4, base_width * width_shrink_rate, base_width, sqrt(base_width) * width_to_length_rate) {
+	TreeNaive(float x, float y, float z, float base_width, float width_shrink_rate, float width_to_length_rate, float numsplit, float mingirth, float curvature, GLuint shaderid, bool useTexture = false) :
+			Cylinder(x, y, z, 4, base_width * width_shrink_rate, base_width, sqrt(base_width) * width_to_length_rate, shaderid, useTexture) {
 
 		auto height = sqrt(base_width) * width_to_length_rate;
 		auto next_width = base_width * width_shrink_rate;
 		if (base_width > mingirth) {
 			float offset = randf()/2;
 			for (auto i = 0; i < numsplit; ++i) {
-				children.push_back(new TreeNaive(0, height*(1.0 - offset), 0, next_width, width_shrink_rate, width_to_length_rate, numsplit + 0.25, mingirth, curvature * 1.1));
+				children.push_back(new TreeNaive(0, height*(1.0 - offset), 0, next_width, width_shrink_rate, width_to_length_rate, numsplit + 0.25, mingirth, curvature * 1.1, shaderid, useTexture));
 				children.back()->orientation.fromHeadPitchRoll(360 * i / numsplit, 0, curvature + randf()*(curvature/2));
 				offset = 0;
 			}
