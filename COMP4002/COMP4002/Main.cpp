@@ -47,14 +47,14 @@ void updateState() {
 	float mspeed = 300 * delta;
 	float tspeed = 50 * delta;
 
-	if (specials[GLUT_KEY_LEFT])	cam.yaw(-tspeed);
-	if (specials[GLUT_KEY_RIGHT])	cam.yaw(tspeed);
-	if (specials[GLUT_KEY_UP])		cam.pitch(-tspeed);
-	if (specials[GLUT_KEY_DOWN])	cam.pitch(tspeed);
+	if (specials[GLUT_KEY_LEFT])	cam.yaw(tspeed);
+	if (specials[GLUT_KEY_RIGHT])	cam.yaw(-tspeed);
+	if (specials[GLUT_KEY_UP])		cam.pitch(tspeed);
+	if (specials[GLUT_KEY_DOWN])	cam.pitch(-tspeed);
 	if (keys['a'])					cam.strafe(-mspeed);
 	if (keys['d'])					cam.strafe(mspeed);
-	if (keys['w'])					cam.move(-mspeed);
-	if (keys['s'])					cam.move(mspeed);
+	if (keys['w'])					cam.move(mspeed);
+	if (keys['s'])					cam.move(-mspeed);
 	/*
 	if (keys['i'])	entities[0]->position.z += 0.1;
 	if (keys['k'])	entities[0]->position.z -= 0.1;
@@ -165,7 +165,8 @@ int main(int argc, char **argv) {
 	glCullFace(GL_BACK);
 	glClearColor(0, 1.0, 1.0, 1.0);
 
-	cam.setPosition(100, 100, 10);
+	cam = Camera(Vector3(0, 0, 10), Vector3(0, 0, 0), Vector3(0, 1, 0));
+	cam.setPosition(Vector3(100, 100, 10));
 
 	shader1 = setupShaders("shader.vert", "shader.frag");
 	shader2 = setupShaders("shader2.vert", "shader2.frag");
