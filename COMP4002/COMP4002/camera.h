@@ -79,6 +79,7 @@ private:
 	enum eOrient { PITCH, ROLL, YAW };
 
 	void update();
+	bool rotate(Quaternion*, Vector3, float);
 	bool rotateZAxis(Quaternion*, float);
 	bool rotateYAxis(Quaternion*, float);
 	bool rotateXAxis(Quaternion*, float);

@@ -126,7 +126,7 @@ void createEntities() {
 	entities.push_back(new Sphere(0, 0, -100, 10));
 	
 	*/
-	entities.push_back(new Entity(0, 0, 0, new Plane(2000, 2000, 0, shader1)));
+	entities.push_back(new Entity(0, 0, 0, new Plane(2000, 2000, 0, shader1, false)));
 	entities.back()->orientation.fromAxisAngle(Vector3(1, 0, 0), 90);
 	for (auto i = 0; i < 5; ++i) {
 		auto tree = new TreeNaive(-400 + i*200, 0, -400, 15, 0.5, 20, 3, 1, 30, shader2, true);
@@ -161,13 +161,16 @@ int main(int argc, char **argv) {
 
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
 	glClearColor(0, 1.0, 1.0, 1.0);
 
 	cam.setPosition(100, 100, 10);
 
 	shader1 = setupShaders("shader.vert", "shader.frag");
 	shader2 = setupShaders("shader2.vert", "shader2.frag");
-	bark_img = SOIL_load_image("bark4.jpg", &bark_img_width, &bark_img_height, NULL, 0);
+	bark_img = SOIL_load_image("nature_bark.jpg", &bark_img_width, &bark_img_height, NULL, 0);
+	leaf_img = SOIL_load_image("leaf2.jpg", &leaf_image_width, &leaf_image_height, NULL, 0);
 	createEntities();
 
 	glutMainLoop();

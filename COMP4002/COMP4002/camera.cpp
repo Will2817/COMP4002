@@ -58,9 +58,6 @@ void Camera::setOrientation(Quaternion quatOrient) {
 void Camera::update() {
 	Matrix4 matTranslation;
 
-	//m_lookatPosition = m_position - GetAxisZ();
-	//up = GetAxisY();
-
 	matTranslation = Matrix4(1, 0, 0, -m_position.x,
 		0, 1, 0, -m_position.y,
 		0, 0, 1, -m_position.z,
@@ -141,7 +138,7 @@ void Camera::applyTranslation(float fDistance, eDir ceDir) {
 	return;
 }
 
-bool Camera::rotateXAxis(Quaternion *pOrientation, float fAngle) {
+bool Camera::rotate(Quaternion *pOrientation, Vector3 vec, float fAngle){
 	bool bSuccess = false;
 
 	if (pOrientation) {
@@ -149,7 +146,7 @@ bool Camera::rotateXAxis(Quaternion *pOrientation, float fAngle) {
 
 		Rotation.fromAxisAngle(*transformVector(
 			pOrientation,
-			&Vector3(1.0f, 0.0f, 0.0f)
+			&vec
 			), fAngle);
 
 		*pOrientation = Rotation * *pOrientation;
@@ -157,50 +154,34 @@ bool Camera::rotateXAxis(Quaternion *pOrientation, float fAngle) {
 		bSuccess = true;
 	}
 
+	return bSuccess;
+}
+
+bool Camera::rotateXAxis(Quaternion *pOrientation, float fAngle) {
+	bool bSuccess = false;
+	bSuccess = rotate(pOrientation, Vector3(1.0f, 0.0f, 0.0f), fAngle);
 	return bSuccess;
 }
 
 bool Camera::rotateYAxis(Quaternion *pOrientation, float fAngle) {
 	bool bSuccess = false;
-
-	if (pOrientation) {
+	if (firstPerson) {
 		Quaternion Rotation;
-
-		if (firstPerson) {
-			Rotation.fromAxisAngle(Vector3(0.0f, 1.0f, 0.0f), fAngle);
-		}
-		else
-		{
-			Rotation.fromAxisAngle(*transformVector(
-				pOrientation,
-				&Vector3(0.0f, 1.0f, 0.0f)
-				), fAngle);
-		}
-
+		Rotation.fromAxisAngle(Vector3(0.0f, 1.0f, 0.0f), fAngle);
 		*pOrientation = Rotation * *pOrientation;
-
 		bSuccess = true;
 	}
-
+	else
+	{
+		bool bSuccess = false;
+		bSuccess = rotate(pOrientation, Vector3(1.0f, 0.0f, 0.0f), fAngle);
+	}
 	return bSuccess;
 }
 
 bool Camera::rotateZAxis(Quaternion *pOrientation, float fAngle) {
 	bool bSuccess = false;
-
-	if (pOrientation) {
-		Quaternion Rotation;
-
-		Rotation.fromAxisAngle(*transformVector(
-			pOrientation,
-			&Vector3(0.0f, 0.0f, 1.0f)
-			), fAngle);
-
-		*pOrientation = Rotation * *pOrientation;
-
-		bSuccess = true;
-	}
-
+	bSuccess = rotate(pOrientation, Vector3(0.0f, 0.0f, 1.0f), fAngle);
 	return bSuccess;
 }
 

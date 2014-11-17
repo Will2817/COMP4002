@@ -41,8 +41,9 @@ struct Texture2D {
 	}
 };
 
-int bark_img_width, bark_img_height;
+int bark_img_width, bark_img_height, leaf_image_width, leaf_image_height;
 unsigned char* bark_img;
+unsigned char* leaf_img;
 
 class Renderable {
 public:
@@ -52,7 +53,7 @@ public:
 	GLuint textureID;
 	GLuint mvpMatrixLoc, vertexLoc, colorLoc, textUnitLoc, textCoordLoc;
 
-	void init_geometry(Vertex* vertices, Color* colors, int num_vertices, GLushort* indices, int num_indices, Texture2D *tCoords = 0) {
+	void init_geometry(Vertex* vertices, Color* colors, int num_vertices, GLushort* indices, int num_indices, Texture2D *tCoords = 0, unsigned char* img=0, int img_width=0, int img_height=0) {
 		GLuint buffers[3];
 
 		glGenVertexArrays(1, &vao);
@@ -80,7 +81,7 @@ public:
 			glGenTextures(1, &textureID);
 			glBindTexture(GL_TEXTURE_2D, textureID);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, bark_img_width, bark_img_height, 0, GL_RGB, GL_UNSIGNED_BYTE, bark_img);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, img_width, img_height, 0, GL_RGB, GL_UNSIGNED_BYTE, img);
 			
 			textUnitLoc = glGetAttribLocation(shader, "texUnit");
 		}
@@ -265,13 +266,13 @@ public:
 
 		Vertex vertices[num_vertices] = {
 			Vertex(min_x, min_y, 0, 1),
-			Vertex(min_x, max_y, 0, 1),
+			Vertex(max_x, min_y, 0, 1),
 			Vertex(max_x, max_y, 0, 1),
-			Vertex(max_x, min_y, 0, 1)
+			Vertex(min_x, max_y, 0, 1)
 		};
 
 		GLushort indices[num_indices] = {
-			0, 1, 2 ,3
+			0, 1, 2 ,3, 3,2,1,0
 		};
 
 		Color colors[num_vertices];
@@ -280,14 +281,18 @@ public:
 			colors[i] = Color(0.3,0.5,0,1);
 		}
 
-		Texture2D tCoords[4] = {
-			Texture2D(0,1),
+		Texture2D tCoords[8] = {
 			Texture2D(0,0),
 			Texture2D(1,0),
-			Texture2D(1,1)
+			Texture2D(1,1),
+			Texture2D(0,1),
+			Texture2D(0, 1),
+			Texture2D(1, 1),
+			Texture2D(1, 0),
+			Texture2D(0, 0)
 		};
 
-		init_geometry(vertices, colors, num_vertices, indices, num_indices, tCoords);
+		init_geometry(vertices, colors, num_vertices, indices, num_indices, tCoords,leaf_img,leaf_image_width,leaf_image_height);
 	}
 
 	void render_self(Matrix4 &self) {
@@ -302,7 +307,7 @@ public:
 
 		glDrawElements(
 			GL_QUADS,            // mode
-			24,					 // count
+			8,					 // count
 			GL_UNSIGNED_SHORT,   // type
 			(void*)0             // element array buffer offset
 			);
@@ -336,8 +341,8 @@ public:
 		auto i = indices.begin();
 		for (auto s = 1; s < sectors - 1; s++) {//top
 			*i++ = 0;
-			*i++ = s;
 			*i++ = s + 1;
+			*i++ = s;
 		}
 		for (auto s = 1; s < sectors - 1; s++) {//bottom
 			*i++ = half;
@@ -346,10 +351,10 @@ public:
 		}
 		for (auto s = 0; s < sectors; s++) {//side
 			*i++ = s;
-			*i++ = half + s;
-			*i++ = s + 1;
 			*i++ = s + 1;
 			*i++ = half + s;
+			*i++ = half + s;
+			*i++ = s + 1;
 			*i++ = half + s + 1;
 		}
 
@@ -368,7 +373,7 @@ public:
 			tCoords[i + half].v = 1;
 		}
 
-		init_geometry(vertices, colors, num_vertices, &indices[0], indices.size(),tCoords);
+		init_geometry(vertices, colors, num_vertices, &indices[0], indices.size(),tCoords, bark_img,bark_img_width,bark_img_height);
 	}
 
 	void render_self(Matrix4 &self) {
@@ -391,7 +396,7 @@ public:
 
 class Leaf : public Plane {
 public: 
-	Leaf() : Plane (8, 12, 0, shader1, false){}
+	Leaf() : Plane (8, 12, 0, shader2, true){}
 };
 
 class TreeNaive {
@@ -407,7 +412,7 @@ public:
 		auto next_width = base_width * width_shrink_rate;
 		if (depth == renderables.size()) {
 			if (base_width > mingirth) {
-				renderables.push_back(new Cylinder(4, next_width, base_width, height, shaderid, useTexture));
+				renderables.push_back(new Cylinder(10, next_width, base_width, height, shaderid, useTexture));
 			}
 			else {
 				renderables.push_back(new Leaf());
