@@ -55,6 +55,7 @@ void updateState() {
 	if (keys['d'])					cam.strafe(mspeed);
 	if (keys['w'])					cam.move(mspeed);
 	if (keys['s'])					cam.move(-mspeed);
+
 	/*
 	if (keys['i'])	entities[0]->position.z += 0.1;
 	if (keys['k'])	entities[0]->position.z -= 0.1;
@@ -161,17 +162,21 @@ int main(int argc, char **argv) {
 
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LEQUAL);
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glClearColor(0, 1.0, 1.0, 1.0);
+	glClearDepth(1.0f);
 
 	cam = Camera(Vector3(0, 0, 10), Vector3(0, 0, 0), Vector3(0, 1, 0));
 	cam.setPosition(Vector3(100, 100, 10));
 
 	shader1 = setupShaders("shader.vert", "shader.frag");
 	shader2 = setupShaders("shader2.vert", "shader2.frag");
-	bark_img = SOIL_load_image("nature_bark.jpg", &bark_img_width, &bark_img_height, NULL, 0);
-	leaf_img = SOIL_load_image("leaf2.jpg", &leaf_image_width, &leaf_image_height, NULL, 0);
+	bark_img = SOIL_load_image("nature_bark.png", &bark_img_width, &bark_img_height, NULL, 0);
+	leaf_img = SOIL_load_image("templeaf.png", &leaf_image_width, &leaf_image_height, NULL, 0);
 	createEntities();
 
 	glutMainLoop();
