@@ -80,10 +80,19 @@ public:
 
 			glGenTextures(1, &textureID);
 			glBindTexture(GL_TEXTURE_2D, textureID);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img_width, img_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img);
 			
+			if (useMipmaps)
+			{
+				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+				gluBuild2DMipmaps(GL_TEXTURE_2D, 3, img_width, img_height, GL_RGBA, GL_UNSIGNED_BYTE, img);
+			}
+			else{
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img_width, img_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img);
+			}
+
 			textUnitLoc = glGetAttribLocation(shader, "texUnit");
 		}
 		else
@@ -103,7 +112,7 @@ public:
 
 		mvpMatrixLoc = glGetUniformLocation(shader, "mvpMatrix");
 	}
-
+	bool useMipmaps = false;
 	virtual void render_self(Matrix4 &self) = 0;
 };
 
@@ -264,7 +273,6 @@ public:
 		auto min_y = -height / 2;
 		auto max_y = height / 2;
 
-
 		Vertex vertices[num_vertices] = {
 			Vertex(min_x, min_y, 0, 1),
 			Vertex(max_x, min_y, 0, 1),
@@ -326,7 +334,7 @@ public:
 		auto S = 1. / (float)(sectors);
 
 		Vertex* vertices = new Vertex[num_vertices];
-
+		useMipmaps = true;
 		for (auto s = 0; s < half; s++) {
 			auto x = cos(2 * Math::PI * s * S);
 			auto z = sin(2 * Math::PI * s * S);
