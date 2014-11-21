@@ -1,4 +1,4 @@
-#include <vector>
+﻿#include <vector>
 #include <glut.h>		   // The GL Utility Toolkit (GLUT) Header
 #include <glew.h>
 #include <math.h>
@@ -463,3 +463,65 @@ public:
 	}
 };
 
+class TreeLSystem {
+public:
+	std::vector<Renderable*> renderables;
+	Entity* root;
+	int max_depth = 6;
+	GLuint shader;
+	bool texture;
+	TreeLSystem(float x, float y, float z, float base_width, GLuint shaderid, bool useTexture = false) {
+		shader = shaderid;
+		texture = useTexture;
+		root = recurse(0, 3, 0, max_depth);
+	}
+
+	Entity* recurse(Entity* parent, float width, float angle, int depth) {
+		
+		if (depth <= 0) return parent; 
+
+		float angle_rate = 25;
+		float height_rate = 1;
+		float width_rate = 0.5;
+		float height = height_rate * std::pow(2, depth);
+		float new_width = width * width_rate;
+		auto renderable = getRenderable(depth, height, width, new_width);
+		Entity* entity;
+		Entity* root;
+
+		root = entity = makeEntity(height, angle, parent, renderable);
+		angle -= angle_rate;
+		{
+			{
+				recurse(entity, new_width, angle, depth - 1);
+			}
+			angle += angle_rate;
+			recurse(entity, new_width, angle, depth - 1);
+		} angle -= angle_rate;
+		angle += angle_rate;
+		entity = makeEntity(height, angle, entity, renderable);
+		{
+			angle += angle_rate;
+			recurse(entity, new_width, angle, depth - 1);
+		} angle -= angle_rate;
+		angle -= angle_rate;
+		recurse(entity, new_width, angle, depth - 1);
+		 
+		return root;
+	}
+
+	Entity* makeEntity(float height, float angle, Entity* parent, Renderable* renderable) {
+		auto entity = new Entity(0, height, 0, renderable);
+		entity->orientation.fromHeadPitchRoll(angle*2, 0, angle);
+		if (parent) parent->children.push_back(entity);
+		return entity;
+	}
+
+	Renderable* getRenderable(int depth, float height, float width, float new_width) {
+		int index = max_depth - depth;
+		if (renderables.size() <= index) {
+			renderables.push_back(new Cylinder(10, new_width, width, height, shader, texture));
+		}
+		return renderables[index];
+	}
+};

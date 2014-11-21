@@ -133,6 +133,9 @@ void createEntities() {
 		auto tree = new TreeNaive(-400 + i*200, 0, -400, 15, 0.5, 20, 3, 1, 30, shader2, true);
 		entities.push_back(tree->root);
 	}
+
+	auto tree = new TreeLSystem(0, 0, 0, 20, shader2, true);
+	entities.push_back(tree->root);
 }
 
 int main(int argc, char **argv) {
