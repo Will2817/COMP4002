@@ -53,7 +53,7 @@ public:
 	GLuint textureID;
 	GLuint mvpMatrixLoc, vertexLoc, colorLoc, textUnitLoc, textCoordLoc;
 
-	void init_geometry(Vertex* vertices, Color* colors, int num_vertices, GLushort* indices, int num_indices, Texture2D *tCoords = 0, unsigned char* img=0, int img_width=0, int img_height=0) {
+	void init_geometry(Vertex* vertices, Color* colors, int num_vertices, GLushort* indices, int num_indices, Texture2D *tCoords = 0, char *imagename = 0) {
 		GLuint buffers[3];
 
 		glGenVertexArrays(1, &vao);
@@ -79,6 +79,23 @@ public:
 			glVertexAttribPointer(textCoordLoc, 2, GL_FLOAT, 0, 0, 0);
 
 			glGenTextures(1, &textureID);
+
+			textureID = SOIL_load_OGL_texture
+				(
+				imagename,
+				SOIL_LOAD_AUTO,
+				SOIL_CREATE_NEW_ID,
+				SOIL_FLAG_MIPMAPS
+				);
+
+
+			// Typical Texture Generation Using Data From The Bitmap
+			glBindTexture(GL_TEXTURE_2D, textureID);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+
+			/*
 			glBindTexture(GL_TEXTURE_2D, textureID);
 			
 			if (useMipmaps)
@@ -91,7 +108,7 @@ public:
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img_width, img_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img);
-			}
+			}*/
 
 			textUnitLoc = glGetAttribLocation(shader, "texUnit");
 		}
@@ -301,7 +318,7 @@ public:
 			Texture2D(0, 0)
 		};
 
-		init_geometry(vertices, colors, num_vertices, indices, num_indices, tCoords,leaf_img,leaf_image_width,leaf_image_height);
+		init_geometry(vertices, colors, num_vertices, indices, num_indices, tCoords,"templeaf.png");
 	}
 
 	void render_self(Matrix4 &self) {
@@ -382,7 +399,7 @@ public:
 			tCoords[i + half].v = 1;
 		}
 
-		init_geometry(vertices, colors, num_vertices, &indices[0], indices.size(),tCoords, bark_img,bark_img_width,bark_img_height);
+		init_geometry(vertices, colors, num_vertices, &indices[0], indices.size(), tCoords, "nature_bark.png");
 	}
 
 	void render_self(Matrix4 &self) {
