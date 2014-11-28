@@ -5,5 +5,5 @@ uniform samplerCube texCube;
 
 void main() 
 { 
-	gl_FragColor = vec4(rVector,1);//texture(texCube, rVector); 
+	gl_FragColor = texture(texCube, rVector); 
  } 

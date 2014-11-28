@@ -131,11 +131,7 @@ void loadImages()
 	images["nature_bark.png"] = SOIL_load_OGL_texture("nature_bark.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
 	images["templeaf.png"] = SOIL_load_OGL_texture("templeaf.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
 	images["ground_texture.png"] = SOIL_load_OGL_texture("ground_texture.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_TEXTURE_REPEATS);
-	images["emerald_skybox"] = SOIL_load_OGL_cubemap("emerald_right.jpg", "emerald_left.jpg",
-		"emerald_up.jpg",
-		"emerald_down.jpg",
-		"emerald_front.jpg",
-		"emerald_left.jpg",
+	images["emerald_skybox"] = SOIL_load_OGL_cubemap("emerald_right.jpg", "emerald_left.jpg", "emerald_top.jpg", "emerald_front.jpg", "emerald_front.jpg", "emerald_back.jpg",
 		SOIL_LOAD_RGB,
 		SOIL_CREATE_NEW_ID,
 		NULL
@@ -143,9 +139,8 @@ void loadImages()
 }
 
 void createEntities() {
-	entities.push_back(new Entity(Vector3(0, 0, -1000), new Plane(2000, 2000, shader2, true,images["ground_texture.png"],false,10,10.0f)));
-	entities.back()->orientation.fromAxisAngle(Vector3(1, 0, 0), -90);
-
+	entities.push_back(new Entity(Vector3(0, 0, 0), new Terrain(shader2, true,images["ground_texture.png"],false,400,10.0f)));
+	entities.back()->setScale(Vector3(10000, 1000, 10000));
 	entities.push_back(new Entity(Vector3(0, 0, -100), new Leaf(images["templeaf.png"])));
 	/*
 	for (auto i = 0; i < 5; ++i) {
@@ -154,7 +149,7 @@ void createEntities() {
 	}
 	*/
 
-	//entities.push_back(new TreeNaive(Vector3(200, 0, -200), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
+	entities.push_back(new TreeNaive(Vector3(200, 0, -200), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
 	entities.push_back(new TreeLSystem(Vector3(0, 0, -300), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
 	entities.push_back(new TreeLSystem(Vector3(200, 0, -200), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
 	//entities.push_back(new BushLSystem(Vector3(100, 0, -250), shader2, true, images["nature_bark.png"], images["templeaf.png"]));

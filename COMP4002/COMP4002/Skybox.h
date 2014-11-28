@@ -69,7 +69,7 @@ public:
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP);
 
-		textUnitLoc = glGetAttribLocation(shader, "texCube");
+		textUnitLoc = glGetUniformLocation(shader, "texCube");
 		
 		// bind buffer for indices and copy data into buffer
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[2]);
@@ -90,16 +90,16 @@ public:
 			0, 1, 0, cameraPosition.y,
 			0, 0, 1, cameraPosition.z,
 			0, 0, 0, 1);
-		glDisable(GL_DEPTH);
+		//glDisable(GL_DEPTH);
 		glUseProgram(shader);
 		glUniformMatrix4fv(mvpMatrixLoc, 1, true, (GLfloat*)&(self*trans*scale));
+		
+		glBindVertexArray(vao);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vio);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 		glUniform1i(textUnitLoc, 0);
-		
-		glBindVertexArray(vao);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vio);
 
 		glDrawElements(
 			GL_TRIANGLES,            // mode
@@ -107,7 +107,7 @@ public:
 			GL_UNSIGNED_SHORT,   // type
 			(void*)0             // element array buffer offset
 			);
-		glEnable(GL_DEPTH);
+		//glEnable(GL_DEPTH);
 
 	}
 };

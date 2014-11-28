@@ -104,7 +104,7 @@ public:
 				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			}
 
-			textUnitLoc = glGetAttribLocation(shader, "texUnit");
+			textUnitLoc = glGetUniformLocation(shader, "texUnit");
 		}
 		else
 		{
@@ -133,6 +133,7 @@ public:
 	Quaternion orientation = Quaternion::IDENTITY;
 	Renderable* renderable;
 	std::vector<Entity*> children = std::vector<Entity*>();
+	Vector3 scale = Vector3(1, 1, 1);
 
 	Entity(Vector3 _pos, Renderable* renderable) {
 		position = _pos;
@@ -140,8 +141,11 @@ public:
 	}
 
 	Matrix4 matrix() {
-		return Matrix4::translation(position.x, position.y, position.z) * orientation.toMatrix4();
+		Matrix4 scaleMatrix = Matrix4(scale.x, 0, 0, 0, 0, scale.y, 0, 0, 0, 0, scale.z, 0, 0, 0, 0, 1);
+		return Matrix4::translation(position.x, position.y, position.z) * orientation.toMatrix4() * scaleMatrix;
 	}
+
+	void setScale(Vector3 _scale) { scale = _scale; }
 
 	void render(Matrix4 &parent) {
 		auto self = parent * matrix();
@@ -271,6 +275,79 @@ public:
 	}
 };
 */
+class Terrain :public Renderable
+{
+public:
+	int num_indices;
+	Terrain(GLuint shaderid, bool useTexture = false, GLuint imageId = 0, bool mipmap = true, int subdivides = 1, float imageRatio = 1.0f)
+	{
+		shader = shaderid;
+		isTextureShader = useTexture;
+		useMipmaps = mipmap;
+
+		auto sub_x = 1.0f / subdivides;
+		auto sub_z = 1.0f / subdivides;
+
+		int num_vertices = pow((subdivides + 1), 2);
+		num_indices = 6 * pow(subdivides, 2);
+
+		std::vector<Vertex> vertices;
+		vertices.resize(num_vertices);
+		std::vector<Color> colors;
+		colors.resize(num_vertices);
+		std::vector<Texture2D> tCoords;
+		tCoords.resize(num_vertices);
+
+		int width, height, channels;
+		unsigned char *ht_map;
+		ht_map = SOIL_load_image("heightmap3.jpg", &width, &height, &channels, SOIL_LOAD_L);
+		
+		for (auto i = 0; i <= subdivides; i++) for (auto j = 0; j <= subdivides; j++)
+		{
+			int s = i * sub_x  * width;
+			int t = j*sub_z * height;
+			vertices[i * (subdivides + 1) + j] = Vertex(i * sub_x, ht_map[s * width + t]/255.0f, j*sub_z, 1);
+			tCoords[j + i *(subdivides + 1)] = Texture2D(((1.0f*i) / subdivides) * imageRatio, 1.0 - ((1.0f*j) / subdivides) * imageRatio);
+			colors[j + i *(subdivides + 1)] = Color(0.3, 0.5, 0, 1);
+		}
+
+		int index = 0;
+		std::vector<GLushort> indices;
+		indices.resize(num_indices);
+		for (auto i = 0; i < subdivides; i += 1) for (auto j = 0; j < subdivides; j += 1)
+		{
+			indices[index++] = j + i * (subdivides + 1);
+			indices[index++] = j + i * (subdivides + 1) + 1;
+			indices[index++] = j + (i + 1) * (subdivides + 1);
+			indices[index++] = j + (i + 1) * (subdivides + 1);
+			indices[index++] = j + i * (subdivides + 1) + 1;
+			indices[index++] = j + (i + 1) * (subdivides + 1) + 1;
+
+		}
+
+		init_geometry(&vertices[0], &colors[0], num_vertices, &indices[0], num_indices, &tCoords[0], imageId);
+	}
+
+	void render_self(Matrix4 &self) {
+		// Draw the quads
+		glDisable(GL_CULL_FACE);
+		if (isTextureShader)
+		{
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, textureID);
+			glUniform1i(textUnitLoc, 0);
+		}
+
+		glDrawElements(
+			GL_TRIANGLES,            // mode
+			num_indices,					 // count
+			GL_UNSIGNED_SHORT,   // type
+			(void*)0             // element array buffer offset
+			);
+		glEnable(GL_CULL_FACE);
+	}
+};
+
 class Plane :public Renderable
 {
 public:
@@ -297,6 +374,9 @@ public:
 		colors.resize(num_vertices);
 		std::vector<Texture2D> tCoords;
 		tCoords.resize(num_vertices);
+
+		int width2, height2, channels;
+		unsigned char *ht_map;
 
 		for (auto i = 0; i <= subdivides; i++) for (auto j = 0; j <= subdivides; j++)
 		{
