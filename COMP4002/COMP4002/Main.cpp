@@ -113,28 +113,17 @@ GLuint setupShaders(char* vert,char* frag) {
 }
 
 void createEntities() {
-	/*
-	entities.push_back(new Box(100, 0, -100, 60, 30, 30));
-	entities.push_back(new Box(0, 100, -100, 60, 30, 30));
-	entities.push_back(new Box(0, 0, -100, 60, 30, 30));
-	entities.push_back(new Box(0, 0, 100, 60, 30, 30));
-	entities.push_back(new Box(100, 0, 100, 60, 30, 30));
-	entities.push_back(new Box(0, 100, 100, 60, 30, 30));
-	entities.push_back(new Box(100, 100, 100, 60, 30, 30));
-	entities[0]->children.push_back(new Sphere(20, 30, 0, 10));
-	entities[0]->children.push_back(new Sphere(-20, 30, 0, 10));
-
-	entities.push_back(new Sphere(0, 0, -100, 10));
-	
-	*/
 	entities.push_back(new Entity(0, 0, 0, new Plane(2000, 2000, 0, shader1, false)));
 	entities.back()->orientation.fromAxisAngle(Vector3(1, 0, 0), 90);
+
+	entities.push_back(new Entity(0, 0, -100, new Leaf()));
+	/*
 	for (auto i = 0; i < 5; ++i) {
 		auto tree = new TreeNaive(-400 + i*200, 0, -400, 15, 0.5, 20, 3, 1, 30, shader2, true);
 		entities.push_back(tree->root);
 	}
-
-	auto tree = new TreeLSystem(0, 0, 0, 20, shader2, true);
+	*/
+	auto tree = new TreeLSystem(0, 0, -300, 20, shader2, true);
 	entities.push_back(tree->root);
 }
 

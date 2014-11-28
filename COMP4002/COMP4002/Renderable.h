@@ -287,8 +287,8 @@ public:
 
 		auto min_x = -width / 2;
 		auto max_x = width / 2;
-		auto min_y = -height / 2;
-		auto max_y = height / 2;
+		auto min_y = 0;
+		auto max_y = height;
 
 		Vertex vertices[num_vertices] = {
 			Vertex(min_x, min_y, 0, 1),
@@ -298,7 +298,7 @@ public:
 		};
 
 		GLushort indices[num_indices] = {
-			0, 1, 2 ,3, 3,2,1,0
+			0, 1, 2 ,3, 3, 2, 1, 0
 		};
 
 		Color colors[num_vertices];
@@ -308,14 +308,14 @@ public:
 		}
 
 		Texture2D tCoords[8] = {
-			Texture2D(0,0),
-			Texture2D(1,0),
-			Texture2D(1,1),
-			Texture2D(0,1),
 			Texture2D(0, 1),
 			Texture2D(1, 1),
 			Texture2D(1, 0),
-			Texture2D(0, 0)
+			Texture2D(0, 0),
+			Texture2D(0, 0),
+			Texture2D(1, 0),
+			Texture2D(1, 1),
+			Texture2D(0, 1)
 		};
 
 		init_geometry(vertices, colors, num_vertices, indices, num_indices, tCoords,"templeaf.png");
@@ -470,49 +470,57 @@ public:
 	int max_depth = 6;
 	GLuint shader;
 	bool texture;
+	float max_tilt = 90;
 	TreeLSystem(float x, float y, float z, float base_width, GLuint shaderid, bool useTexture = false) {
 		shader = shaderid;
 		texture = useTexture;
-		root = recurse(0, 3, 0, max_depth);
+		root = recurse(0, 3, 0, 0, 0, max_depth);
+		root->position = Vector3(x, y, z);
 	}
 
-	Entity* recurse(Entity* parent, float width, float angle, int depth) {
+	Entity* recurse(Entity* parent, float width, float v_offset, float tilt, float angle, int depth) {
 		
 		if (depth <= 0) return parent; 
 
-		float angle_rate = 25;
+		float tilt_rate = 25;
 		float height_rate = 1;
 		float width_rate = 0.5;
 		float height = height_rate * std::pow(2, depth);
 		float new_width = width * width_rate;
-		auto renderable = getRenderable(depth, height, width, new_width);
+		auto renderable = getRenderable(depth, height * 2, width, new_width);
 		Entity* entity;
 		Entity* root;
 
-		root = entity = makeEntity(height, angle, parent, renderable);
-		angle -= angle_rate;
+		root = entity = makeEntity(v_offset, tilt, angle, parent, renderable, depth == 1);
+		tilt -= tilt_rate;
 		{
 			{
-				recurse(entity, new_width, angle, depth - 1);
+				recurse(entity, new_width, height, tilt, 0, depth - 1);
 			}
-			angle += angle_rate;
-			recurse(entity, new_width, angle, depth - 1);
-		} angle -= angle_rate;
-		angle += angle_rate;
-		entity = makeEntity(height, angle, entity, renderable);
+			tilt += tilt_rate;
+			recurse(entity, new_width, height, tilt, 120, depth - 1);
+		} tilt -= tilt_rate;
+		tilt += tilt_rate;
+
+		auto new_new_width = new_width / 2;
 		{
-			angle += angle_rate;
-			recurse(entity, new_width, angle, depth - 1);
-		} angle -= angle_rate;
-		angle -= angle_rate;
-		recurse(entity, new_width, angle, depth - 1);
+			tilt += tilt_rate;
+			recurse(entity, new_new_width, height * 2, tilt, 70, depth - 1);
+		} tilt -= tilt_rate;
+		tilt -= tilt_rate;
+		recurse(entity, new_new_width, height * 2, tilt, 160, depth - 1);
 		 
 		return root;
 	}
 
-	Entity* makeEntity(float height, float angle, Entity* parent, Renderable* renderable) {
+	Entity* makeEntity(float height, float tilt, float angle, Entity* parent, Renderable* renderable, bool leaf) {
 		auto entity = new Entity(0, height, 0, renderable);
-		entity->orientation.fromHeadPitchRoll(angle*2, 0, angle);
+		if (leaf) {
+			entity->orientation.fromHeadPitchRoll(tilt, tilt, angle);
+		} else {
+			entity->orientation.fromHeadPitchRoll(angle, 0, tilt);
+		}
+		
 		if (parent) parent->children.push_back(entity);
 		return entity;
 	}
@@ -520,7 +528,11 @@ public:
 	Renderable* getRenderable(int depth, float height, float width, float new_width) {
 		int index = max_depth - depth;
 		if (renderables.size() <= index) {
-			renderables.push_back(new Cylinder(10, new_width, width, height, shader, texture));
+			if (index == max_depth - 1) {
+				renderables.push_back(new Leaf());
+			} else {
+				renderables.push_back(new Cylinder(10, new_width, width, height, shader, texture));
+			}
 		}
 		return renderables[index];
 	}
