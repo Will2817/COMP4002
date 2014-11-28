@@ -83,7 +83,11 @@ public:
 			textureID = imageId;
 			glBindTexture(GL_TEXTURE_2D, textureID);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+			float aniso = 0.0f;
+			glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &aniso);
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, aniso);
 
 			/*
 			glBindTexture(GL_TEXTURE_2D, textureID);
@@ -422,7 +426,7 @@ public:
 	TreeNaive(Vector3 _pos, GLuint shaderid, bool useTexture, GLuint barkimage, GLuint leafimage) : Entity(_pos, 0) {
 		float base_width = 2;
 		float width_shrink_rate = 0.8;
-		float width_to_length_rate = 8;
+		float width_to_length_rate = 6;
 		float numsplit = 3;
 		float mingirth = 1; 
 		float curvature = 30;
