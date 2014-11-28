@@ -141,12 +141,13 @@ public:
 
 	void render(Matrix4 &parent) {
 		auto self = parent * matrix();
-		glUseProgram(renderable->shader);
-		glUniformMatrix4fv(renderable->mvpMatrixLoc, 1, true, (GLfloat*)&self);
-		glBindVertexArray(renderable->vao);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderable->vio);
-
-		renderable->render_self(self);
+		if (renderable) {
+			glUseProgram(renderable->shader);
+			glUniformMatrix4fv(renderable->mvpMatrixLoc, 1, true, (GLfloat*)&self);
+			glBindVertexArray(renderable->vao);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderable->vio);
+			renderable->render_self(self);
+		}
 
 		render_children(self);
 	}
@@ -419,7 +420,13 @@ class TreeNaive {
 public:
 	std::vector<Renderable*> renderables;
 	Entity* root;
-	TreeNaive(Vector3 _pos, float base_width, float width_shrink_rate, float width_to_length_rate, float numsplit, float mingirth, float curvature, GLuint shaderid, bool useTexture = false, GLuint barkimage=0, GLuint leafimage=0) {
+	TreeNaive(Vector3 _pos, GLuint shaderid, bool useTexture, GLuint barkimage, GLuint leafimage) {
+		float base_width = 15;
+		float width_shrink_rate = 0.5;
+		float width_to_length_rate = 20;
+		float numsplit = 3;
+		float mingirth = 1; 
+		float curvature = 30;
 		root = makeRecursive(_pos, base_width, width_shrink_rate, width_to_length_rate, numsplit, mingirth, curvature, shaderid, useTexture, 0, barkimage, leafimage);
 	}
 	
@@ -453,23 +460,23 @@ public:
 	}
 };
 
-class TreeLSystem {
+class TreeLSystem: public Entity {
 public:
 	std::vector<Renderable*> renderables;
-	Entity* root;
 	int max_depth = 6;
 	GLuint shader;
 	bool texture;
 	float max_tilt = 90;
 	GLuint leaf_img = 0;
 	GLuint bark_img = 0;
-	TreeLSystem(float x, float y, float z, float base_width, GLuint shaderid, bool useTexture, GLuint barkImage, GLuint leafImage) {
+
+	TreeLSystem(Vector3 pos, float base_width, GLuint shaderid, bool useTexture, GLuint barkImage, GLuint leafImage) 
+			: Entity(pos, 0) {
 		leaf_img = leafImage;
 		bark_img = barkImage;
 		shader = shaderid;
 		texture = useTexture;
-		root = recurse(0, 3, 0, 0, 0, max_depth);
-		root->position = Vector3(x, y, z);
+		children.push_back(recurse(0, 3, 0, 0, 0, max_depth));
 	}
 
 	Entity* recurse(Entity* parent, float width, float v_offset, float tilt, float angle, int depth) {
