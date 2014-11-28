@@ -468,10 +468,14 @@ public:
 class TreeLSystem: public Entity {
 public:
 	std::vector<Renderable*> renderables;
-	int max_depth = 6;
+	int max_depth = 7;
+	int min_depth = 2;
+	float tilt_rate = 25;
+	float height_rate = 0.5;
+	float width_rate = 0.5;
+
 	GLuint shader;
 	bool texture;
-	float max_tilt = 90;
 	GLuint leaf_img = 0;
 	GLuint bark_img = 0;
 
@@ -487,11 +491,7 @@ public:
 
 	Entity* recurse(Entity* parent, float width, float v_offset, float tilt, float angle, int depth) {
 		
-		if (depth <= 0) return parent; 
-		
-		float tilt_rate = 25;
-		float height_rate = 1;
-		float width_rate = 0.5;
+		if (depth < min_depth) return parent; 
 
 		float height = height_rate * std::pow(2, depth);
 		float new_width = width * width_rate;
@@ -537,7 +537,7 @@ public:
 	Renderable* getRenderable(int depth, float height, float width, float new_width) {
 		int index = max_depth - depth;
 		if (renderables.size() <= index) {
-			if (index == max_depth - 1) {
+			if (depth == min_depth) {
 				renderables.push_back(new Leaf(leaf_img));
 			} else {
 				renderables.push_back(new Cylinder(10, new_width, width, height, shader, texture, bark_img));
