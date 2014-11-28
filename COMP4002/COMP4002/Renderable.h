@@ -88,11 +88,16 @@ public:
 			// Typical Texture Generation Using Data From The Bitmap
 			textureID = imageId;
 			glBindTexture(GL_TEXTURE_2D, textureID);
-			
+
+
+			float aniso = 0.0f;
+			glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &aniso);
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, aniso);
+
 			if (useMipmaps)
 			{
 				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			}
 			else{
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -140,12 +145,13 @@ public:
 
 	void render(Matrix4 &parent) {
 		auto self = parent * matrix();
-		glUseProgram(renderable->shader);
-		glUniformMatrix4fv(renderable->mvpMatrixLoc, 1, true, (GLfloat*)&self);
-		glBindVertexArray(renderable->vao);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderable->vio);
-
-		renderable->render_self(self);
+		if (renderable) {
+			glUseProgram(renderable->shader);
+			glUniformMatrix4fv(renderable->mvpMatrixLoc, 1, true, (GLfloat*)&self);
+			glBindVertexArray(renderable->vao);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderable->vio);
+			renderable->render_self(self);
+		}
 
 		render_children(self);
 	}
@@ -422,15 +428,22 @@ public:
 	Leaf(GLuint imageId) : Plane (8, 12, shader2, true, imageId){}
 };
 
-class TreeNaive {
+class TreeNaive: public Entity {
 public:
 	std::vector<Renderable*> renderables;
-	Entity* root;
-	TreeNaive(Vector3 _pos, float base_width, float width_shrink_rate, float width_to_length_rate, float numsplit, float mingirth, float curvature, GLuint shaderid, bool useTexture = false, GLuint barkimage=0, GLuint leafimage=0) {
-		root = makeRecursive(_pos, base_width, width_shrink_rate, width_to_length_rate, numsplit, mingirth, curvature, shaderid, useTexture, 0, barkimage, leafimage);
+	TreeNaive(Vector3 _pos, GLuint shaderid, bool useTexture, GLuint barkimage, GLuint leafimage) : Entity(_pos, 0) {
+		float base_width = 2;
+		float width_shrink_rate = 0.8;
+		float width_to_length_rate = 6;
+		float numsplit = 3;
+		float mingirth = 1; 
+		float curvature = 30;
+		children.push_back(
+			makeRecursive(Vector3(0,0,0), base_width, width_shrink_rate, width_to_length_rate, numsplit, mingirth, curvature, shaderid, useTexture, 0, barkimage, leafimage)
+		);
 	}
 	
-	Entity* makeRecursive(Vector3 _pos, float base_width, float width_shrink_rate, float width_to_length_rate, float numsplit, float mingirth, float curvature, GLuint shaderid, bool useTexture, int depth, GLuint barkimage, GLuint leafimage) {
+	Entity* makeRecursive(Vector3 pos, float base_width, float width_shrink_rate, float width_to_length_rate, float numsplit, float mingirth, float curvature, GLuint shaderid, bool useTexture, int depth, GLuint barkimage, GLuint leafimage) {
 		auto height = sqrt(base_width) * width_to_length_rate;
 		auto next_width = base_width * width_shrink_rate;
 		if (depth == renderables.size()) {
@@ -441,7 +454,7 @@ public:
 				renderables.push_back(new Leaf(leafimage));
 			}
 		}
-		auto part = new Entity(_pos, renderables[depth]);
+		auto part = new Entity(pos, renderables[depth]);
 		if (base_width > mingirth) {
 			float offset = randf()/2;
 			for (auto i = 0; i < numsplit; ++i) {
@@ -460,34 +473,37 @@ public:
 	}
 };
 
-class TreeLSystem {
+class TreeLSystem: public Entity {
 public:
 	std::vector<Renderable*> renderables;
-	Entity* root;
 	int max_depth = 6;
 	GLuint shader;
 	bool texture;
 	float max_tilt = 90;
 	GLuint leaf_img = 0;
 	GLuint bark_img = 0;
-	TreeLSystem(float x, float y, float z, float base_width, GLuint shaderid, bool useTexture, GLuint barkImage, GLuint leafImage) {
+
+	TreeLSystem(Vector3 pos, GLuint shaderid, bool useTexture, GLuint barkImage, GLuint leafImage) 
+			: Entity(pos, 0) {
 		leaf_img = leafImage;
 		bark_img = barkImage;
 		shader = shaderid;
 		texture = useTexture;
-		root = recurse(0, 3, 0, 0, 0, max_depth);
-		root->position = Vector3(x, y, z);
+		children.push_back(recurse(0, 4, 0, 0, 0, max_depth));
+
 	}
 
 	Entity* recurse(Entity* parent, float width, float v_offset, float tilt, float angle, int depth) {
 		
 		if (depth <= 0) return parent; 
-
+		
 		float tilt_rate = 25;
 		float height_rate = 1;
 		float width_rate = 0.5;
+
 		float height = height_rate * std::pow(2, depth);
 		float new_width = width * width_rate;
+		
 		auto renderable = getRenderable(depth, height * 2, width, new_width);
 		Entity* entity;
 		Entity* root;
@@ -532,6 +548,97 @@ public:
 			if (index == max_depth - 1) {
 				renderables.push_back(new Leaf(leaf_img));
 			} else {
+				renderables.push_back(new Cylinder(10, new_width, width, height, shader, texture, bark_img));
+			}
+		}
+		return renderables[index];
+	}
+};
+
+class BushLSystem : public Entity {
+public:
+	std::vector<Renderable*> renderables;
+	int max_depth = 4;
+	GLuint shader;
+	bool texture;
+	GLuint leaf_img = 0;
+	GLuint bark_img = 0;
+
+	BushLSystem(Vector3 pos, GLuint shaderid, bool useTexture, GLuint barkImage, GLuint leafImage)
+		: Entity(pos, 0) {
+		leaf_img = leafImage;
+		bark_img = barkImage;
+		shader = shaderid;
+		texture = useTexture;
+		children.push_back(recurse(0, 1, 0, 0, 0, max_depth));
+		children.push_back(recurse(0, 1, 0, 0, 0, max_depth));
+		children.push_back(recurse(0, 1, 0, 0, 0, max_depth));
+
+		float amount = 0;
+		for (auto it = children.begin(); it != children.end(); ++it) {
+			amount += 120;
+			(*it)->orientation.fromHeadPitchRoll(amount, 0, 45);
+		}
+
+	}
+
+	Entity* recurse(Entity* parent, float width, float v_offset, float tilt, float angle, int depth) {
+
+		if (depth <= 0) return parent;
+
+		float tilt_rate = 25;
+		float height_rate = 0.3;
+		float width_rate = 0.5;
+
+		float height = height_rate * std::pow(2, depth);
+		float new_width = width * width_rate;
+
+		auto renderable = getRenderable(depth, height * 2, width, new_width);
+		Entity* entity;
+		Entity* root;
+
+		root = entity = makeEntity(v_offset, tilt, angle, parent, renderable, depth == 1);
+		tilt -= tilt_rate;
+		{
+			{
+				recurse(entity, new_width, height, tilt, 0, depth - 1);
+			}
+			tilt += tilt_rate;
+			recurse(entity, new_width, height, tilt, 120, depth - 1);
+		} tilt -= tilt_rate;
+		tilt += tilt_rate;
+
+		auto new_new_width = new_width / 2;
+		{
+			tilt += tilt_rate;
+			recurse(entity, new_new_width, height * 2, tilt, 70, depth - 1);
+		} tilt -= tilt_rate;
+		tilt -= tilt_rate;
+		recurse(entity, new_new_width, height * 2, tilt, 160, depth - 1);
+
+		return root;
+	}
+
+	Entity* makeEntity(float height, float tilt, float angle, Entity* parent, Renderable* renderable, bool leaf) {
+		auto entity = new Entity(Vector3(0, height, 0), renderable);
+		if (leaf) {
+			entity->orientation.fromHeadPitchRoll(tilt, tilt, angle);
+		}
+		else {
+			entity->orientation.fromHeadPitchRoll(angle, 0, tilt);
+		}
+
+		if (parent) parent->children.push_back(entity);
+		return entity;
+	}
+
+	Renderable* getRenderable(int depth, float height, float width, float new_width) {
+		int index = max_depth - depth;
+		if (renderables.size() <= index) {
+			if (index == max_depth - 1) {
+				renderables.push_back(new Leaf(leaf_img));
+			}
+			else {
 				renderables.push_back(new Cylinder(10, new_width, width, height, shader, texture, bark_img));
 			}
 		}

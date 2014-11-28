@@ -149,12 +149,14 @@ void createEntities() {
 	entities.push_back(new Entity(Vector3(0, 0, -100), new Leaf(images["templeaf.png"])));
 	/*
 	for (auto i = 0; i < 5; ++i) {
-		auto tree = new TreeNaive(Vector3(-400 + i*200, 0, -400), 15, 0.5, 20, 3, 1, 30, shader2, true, images["nature_bark.png"],images["templeaf.png"]);
+		auto tree = ;
 		entities.push_back(tree->root);
 	}
 	*/
-	auto tree = new TreeLSystem(0, 0, -300, 20, shader2, true, images["nature_bark.png"], images["templeaf.png"]);
-	entities.push_back(tree->root);
+
+	entities.push_back(new TreeNaive(Vector3(200, 0, -200), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
+	entities.push_back(new TreeLSystem(Vector3(0, 0, -300), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
+	entities.push_back(new BushLSystem(Vector3(100, 0, -250), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
 }
 
 int main(int argc, char **argv) {
