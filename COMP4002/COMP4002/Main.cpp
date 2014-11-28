@@ -4,7 +4,7 @@
 #include <vector>
 #include <glew.h>
 #include <glut.h>
-
+#include <unordered_map>
 
 #include "Shader.h"
 #include "camera.h"
@@ -17,8 +17,8 @@ Matrix4 projectionMatrix;
 std::vector<Entity*> entities = std::vector<Entity*>();
 bool keys[128] = { false };
 bool specials[256] = { false };
-
 int oldtime = 0;
+std::unordered_map<std::string, GLuint> images;
 
 
 /*****************************************************************************/
@@ -73,6 +73,19 @@ void updateState() {
 void renderWin(void) {
 	updateState();
 
+	static int frame = 0;
+	static int timebase = 0;
+	char s[32];
+	frame++;
+	int time = glutGet(GLUT_ELAPSED_TIME);
+	if (time - timebase > 1000) {
+		sprintf(s, "Graphics FPS:%4.2f",
+			frame*1000.0 / (time - timebase));
+		timebase = time;
+		frame = 0;
+		glutSetWindowTitle(s);
+	}
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	auto mvMatrix = projectionMatrix * cam.getViewMatrix();
@@ -112,18 +125,24 @@ GLuint setupShaders(char* vert,char* frag) {
 	return(p);
 }
 
+void loadImages()
+{
+	images["nature_bark.png"] = SOIL_load_OGL_texture("nature_bark.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
+	images["templeaf.png"] = SOIL_load_OGL_texture("templeaf.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
+}
+
 void createEntities() {
-	entities.push_back(new Entity(0, 0, 0, new Plane(2000, 2000, 0, shader1, false)));
+	entities.push_back(new Entity(Vector3(0, 0, 0), new Plane(2000, 2000, 0, shader1, false)));
 	entities.back()->orientation.fromAxisAngle(Vector3(1, 0, 0), 90);
 
-	entities.push_back(new Entity(0, 0, -100, new Leaf()));
+	entities.push_back(new Entity(Vector3(0, 0, -100), new Leaf(images["templeaf.png"])));
 	/*
 	for (auto i = 0; i < 5; ++i) {
-		auto tree = new TreeNaive(-400 + i*200, 0, -400, 15, 0.5, 20, 3, 1, 30, shader2, true);
+		auto tree = new TreeNaive(Vector3(-400 + i*200, 0, -400), 15, 0.5, 20, 3, 1, 30, shader2, true, images["nature_bark.png"],images["templeaf.png"]);
 		entities.push_back(tree->root);
 	}
 	*/
-	auto tree = new TreeLSystem(0, 0, -300, 20, shader2, true);
+	auto tree = new TreeLSystem(0, 0, -300, 20, shader2, true, images["nature_bark.png"], images["templeaf.png"]);
 	entities.push_back(tree->root);
 }
 
@@ -134,7 +153,7 @@ int main(int argc, char **argv) {
 	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
 	glutInitWindowPosition(100, 100);
 	glutInitWindowSize(650, 500);
-	glutCreateWindow("Assignment 2");
+	glutCreateWindow("Graphics");
 
 	glutDisplayFunc(renderWin);
 	glutIdleFunc(renderWin);
@@ -167,6 +186,7 @@ int main(int argc, char **argv) {
 
 	shader1 = setupShaders("shader.vert", "shader.frag");
 	shader2 = setupShaders("shader2.vert", "shader2.frag");
+	loadImages();
 	//bark_img = SOIL_load_image("nature_bark.png", &bark_img_width, &bark_img_height, NULL, 0);
 	//leaf_img = SOIL_load_image("templeaf.png", &leaf_image_width, &leaf_image_height, NULL, 0);
 	createEntities();
