@@ -1,4 +1,6 @@
-﻿#include <vector>
+﻿#pragma once
+
+#include <vector>
 #include <glut.h>		   // The GL Utility Toolkit (GLUT) Header
 #include <glew.h>
 #include <math.h>
@@ -9,6 +11,10 @@ struct Vertex {
 	float x, y, z, w;
 
 	Vertex() {}
+
+	Vertex(float _x, float _y, float _z){
+		x = _x; y = _y; z = _z; w = 1;
+	}
 
 	Vertex(float _x, float _y, float _z, float _w) {
 		x = _x; y = _y; z = _z; w = _w;
@@ -29,7 +35,7 @@ float randf() {
 	return ((float)rand()) / (float) RAND_MAX;
 }
 
-GLuint shader1, shader2;
+GLuint shader1, shader2, shader3;
 
 struct Texture2D {
 	float u, v;
@@ -82,23 +88,16 @@ public:
 			// Typical Texture Generation Using Data From The Bitmap
 			textureID = imageId;
 			glBindTexture(GL_TEXTURE_2D, textureID);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-
-			/*
-			glBindTexture(GL_TEXTURE_2D, textureID);
 			
 			if (useMipmaps)
 			{
 				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-				gluBuild2DMipmaps(GL_TEXTURE_2D, 3, img_width, img_height, GL_RGBA, GL_UNSIGNED_BYTE, img);
 			}
 			else{
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img_width, img_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img);
-			}*/
+			}
 
 			textUnitLoc = glGetAttribLocation(shader, "texUnit");
 		}
@@ -269,51 +268,57 @@ public:
 class Plane :public Renderable
 {
 public:
-	Plane(float width, float height, float depth, GLuint shaderid, bool useTexture = false, GLuint imageId = 0) {
+	int num_indices;
+	Plane(float width, float height, GLuint shaderid, bool useTexture = false, GLuint imageId = 0, bool mipmap = true, int subdivides = 1, float imageRatio = 1.0f) {
 		shader = shaderid;
 		isTextureShader = useTexture;
-		auto const num_vertices = 8;
-		auto const num_indices = 24;
+		useMipmaps = mipmap;
 
 		auto min_x = -width / 2;
 		auto max_x = width / 2;
 		auto min_y = 0;
 		auto max_y = height;
 
-		Vertex vertices[num_vertices] = {
-			Vertex(min_x, min_y, 0, 1),
-			Vertex(max_x, min_y, 0, 1),
-			Vertex(max_x, max_y, 0, 1),
-			Vertex(min_x, max_y, 0, 1)
-		};
+		auto sub_x = width / subdivides;
+		auto sub_y = height / subdivides;
 
-		GLushort indices[num_indices] = {
-			0, 1, 2 ,3, 3, 2, 1, 0
-		};
+		int num_vertices = pow((subdivides + 1), 2);
+		num_indices = 6 * pow(subdivides, 2);
+		 
+		std::vector<Vertex> vertices;
+		vertices.resize(num_vertices);
+		std::vector<Color> colors;
+		colors.resize(num_vertices);
+		std::vector<Texture2D> tCoords;
+		tCoords.resize(num_vertices);
 
-		Color colors[num_vertices];
-
-		for (auto i = 0; i < num_vertices; ++i) {
-			colors[i] = Color(0.3,0.5,0,1);
+		for (auto i = 0; i <= subdivides; i++) for (auto j = 0; j <= subdivides; j++)
+		{
+			vertices[i * (subdivides + 1) + j] = Vertex(min_x + i * sub_x,min_y + j*sub_y, 0, 1);
+			tCoords[j + i *(subdivides + 1)] = Texture2D(((1.0f*i) / subdivides) * imageRatio, 1.0-((1.0f*j) / subdivides) * imageRatio);
+			colors[j + i *(subdivides + 1)] = Color(0.3, 0.5, 0, 1);
 		}
 
-		Texture2D tCoords[8] = {
-			Texture2D(0, 1),
-			Texture2D(1, 1),
-			Texture2D(1, 0),
-			Texture2D(0, 0),
-			Texture2D(0, 0),
-			Texture2D(1, 0),
-			Texture2D(1, 1),
-			Texture2D(0, 1)
-		};
+		int index = 0;
+		std::vector<GLushort> indices;
+		indices.resize(num_indices);
+		for (auto i = 0; i < subdivides; i += 1) for (auto j = 0; j < subdivides; j += 1)
+		{
+			indices[index++] = j + i * (subdivides+1);
+			indices[index++] = j + i * (subdivides + 1) + 1;
+			indices[index++] = j + (i + 1) * (subdivides + 1);
+			indices[index++] = j + (i + 1) * (subdivides + 1);
+			indices[index++] = j + i * (subdivides + 1) + 1;
+			indices[index++] = j + (i + 1) * (subdivides + 1) + 1;
 
-		init_geometry(vertices, colors, num_vertices, indices, num_indices, tCoords, imageId);
+		}
+
+		init_geometry(&vertices[0], &colors[0], num_vertices, &indices[0], num_indices, &tCoords[0], imageId);
 	}
 
 	void render_self(Matrix4 &self) {
 		// Draw the quads
-		
+		glDisable(GL_CULL_FACE);
 		if (isTextureShader)
 		{
 			glActiveTexture(GL_TEXTURE0);
@@ -322,11 +327,12 @@ public:
 		}
 
 		glDrawElements(
-			GL_QUADS,            // mode
-			8,					 // count
+			GL_TRIANGLES,            // mode
+			num_indices,					 // count
 			GL_UNSIGNED_SHORT,   // type
 			(void*)0             // element array buffer offset
 			);
+		glEnable(GL_CULL_FACE);
 	}
 };
 
@@ -336,6 +342,7 @@ public:
 	Cylinder(int sectors, float topradius, float botradius, float length, GLuint shaderid, bool useTexture=false, GLuint imageId = 0) {
 		shader = shaderid;
 		isTextureShader = useTexture;
+		useMipmaps = true;
 		auto const num_vertices = (sectors+1) * 2;
 		auto half = num_vertices / 2;
 		auto S = 1. / (float)(sectors);
@@ -412,7 +419,7 @@ public:
 
 class Leaf : public Plane {
 public: 
-	Leaf(GLuint imageId) : Plane (8, 12, 0, shader2, true, imageId){}
+	Leaf(GLuint imageId) : Plane (8, 12, shader2, true, imageId){}
 };
 
 class TreeNaive {

@@ -9,7 +9,7 @@
 #include "Shader.h"
 #include "camera.h"
 #include "Renderable.h"
-
+#include "Skybox.h"
 // Shader program
 
 Camera cam;
@@ -19,7 +19,7 @@ bool keys[128] = { false };
 bool specials[256] = { false };
 int oldtime = 0;
 std::unordered_map<std::string, GLuint> images;
-
+Skybox *skybox;
 
 /*****************************************************************************/
 void Check_GPU_Status();
@@ -90,6 +90,7 @@ void renderWin(void) {
 
 	auto mvMatrix = projectionMatrix * cam.getViewMatrix();
 
+	skybox->render_self(mvMatrix,cam.getPosition());
 	for (auto it = entities.begin(); it != entities.end(); ++it) {
 		(*it)->render(mvMatrix);
 	}
@@ -129,11 +130,21 @@ void loadImages()
 {
 	images["nature_bark.png"] = SOIL_load_OGL_texture("nature_bark.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
 	images["templeaf.png"] = SOIL_load_OGL_texture("templeaf.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
+	images["ground_texture.png"] = SOIL_load_OGL_texture("ground_texture.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_TEXTURE_REPEATS);
+	images["emerald_skybox"] = SOIL_load_OGL_cubemap("emerald_right.jpg", "emerald_left.jpg",
+		"emerald_up.jpg",
+		"emerald_down.jpg",
+		"emerald_front.jpg",
+		"emerald_left.jpg",
+		SOIL_LOAD_RGB,
+		SOIL_CREATE_NEW_ID,
+		NULL
+		);
 }
 
 void createEntities() {
-	entities.push_back(new Entity(Vector3(0, 0, 0), new Plane(2000, 2000, 0, shader1, false)));
-	entities.back()->orientation.fromAxisAngle(Vector3(1, 0, 0), 90);
+	entities.push_back(new Entity(Vector3(0, 0, -1000), new Plane(2000, 2000, shader2, true,images["ground_texture.png"],false,10,10.0f)));
+	entities.back()->orientation.fromAxisAngle(Vector3(1, 0, 0), -90);
 
 	entities.push_back(new Entity(Vector3(0, 0, -100), new Leaf(images["templeaf.png"])));
 	/*
@@ -186,7 +197,10 @@ int main(int argc, char **argv) {
 
 	shader1 = setupShaders("shader.vert", "shader.frag");
 	shader2 = setupShaders("shader2.vert", "shader2.frag");
+	shader3 = setupShaders("skybox.vert", "skybox.frag");
 	loadImages();
+	skybox = new Skybox(shader3, images["emerald_skybox"]);
+
 	//bark_img = SOIL_load_image("nature_bark.png", &bark_img_width, &bark_img_height, NULL, 0);
 	//leaf_img = SOIL_load_image("templeaf.png", &leaf_image_width, &leaf_image_height, NULL, 0);
 	createEntities();

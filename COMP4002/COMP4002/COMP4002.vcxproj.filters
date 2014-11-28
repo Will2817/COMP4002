@@ -56,6 +56,9 @@
     <ClInclude Include="targetver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Skybox.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shader.frag">
@@ -68,6 +71,12 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="shader2.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="skybox.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="skybox.frag">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
