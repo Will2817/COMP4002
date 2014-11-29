@@ -139,7 +139,7 @@ void loadImages()
 }
 
 void createEntities() {
-	entities.push_back(new Entity(Vector3(0, 0, 0), new Terrain(shader2, true,images["ground_texture.png"],false,400,10.0f)));
+	entities.push_back(new Entity(Vector3(0, 0, 0), new Terrain(shader2, true,images["ground_texture.png"],false,200,10.0f)));
 	entities.back()->setScale(Vector3(10000, 1000, 10000));
 	entities.push_back(new Entity(Vector3(0, 0, -100), new Leaf(images["templeaf.png"])));
 	/*
@@ -148,9 +148,17 @@ void createEntities() {
 		entities.push_back(tree->root);
 	}
 	*/
-
+	//TreeLSystem modelTree = TreeLSystem(Vector3(0, 0, -300), shader2, true, images["nature_bark.png"], images["templeaf.png"]);
+	//Entity *skeleton = modelTree.children.front();
 	entities.push_back(new TreeNaive(Vector3(200, 0, -200), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
-	entities.push_back(new TreeLSystem(Vector3(0, 0, -300), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
+	//entities.push_back(&modelTree);
+
+	//for (auto i = 0; i < 10; i++)
+//	{
+	//	entities.push_back(new Entity(Vector3(200 + 50 * i, 0, -300), NULL));
+
+//	}
+
 	entities.push_back(new TreeLSystem(Vector3(200, 0, -200), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
 	//entities.push_back(new BushLSystem(Vector3(100, 0, -250), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
 }
@@ -187,6 +195,7 @@ int main(int argc, char **argv) {
 	glCullFace(GL_BACK);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 	glClearColor(0, 1.0, 1.0, 1.0);
 	glClearDepth(1.0f);
 
