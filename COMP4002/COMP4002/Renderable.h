@@ -35,7 +35,7 @@ float randf() {
 	return ((float)rand()) / (float) RAND_MAX;
 }
 
-GLuint shader1, shader2, shader3;
+GLuint shader1, shader2, shader3,shader4;
 
 struct Texture2D {
 	float u, v;
@@ -59,19 +59,17 @@ public:
 	GLuint textureID;
 	GLuint mvpMatrixLoc, vertexLoc, colorLoc, textUnitLoc, textCoordLoc;
 
-	void init_geometry(Vertex* vertices, Color* colors, int num_vertices, GLushort* indices, int num_indices, Texture2D *tCoords = 0, GLuint imageId = 0) {
-		GLuint buffers[3];
-
+	void init_geometry(Vertex* vertices, Color* colors, GLushort* indices, Texture2D *tCoords = 0, GLuint imageId = 0) {
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
 
 		// Generate slots for the vertex and color buffers
-		glGenBuffers(3, buffers);
+		glGenBuffers(4, buffers);
 
 		// bind buffer for vertices and copy data into buffer
 		vertexLoc = glGetAttribLocation(shader, "position");
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
-		glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(Vertex), vertices, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Vertex), vertices, GL_STATIC_DRAW);
 		glEnableVertexAttribArray(vertexLoc);
 		glVertexAttribPointer(vertexLoc, 4, GL_FLOAT, 0, 0, 0);
 
@@ -80,7 +78,7 @@ public:
 		{
 			textCoordLoc = glGetAttribLocation(shader, "textCoord");
 			glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
-			glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(Texture2D), tCoords, GL_STATIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Texture2D), tCoords, GL_STATIC_DRAW);
 			glEnableVertexAttribArray(textCoordLoc);
 			glVertexAttribPointer(textCoordLoc, 2, GL_FLOAT, 0, 0, 0);
 
@@ -110,21 +108,55 @@ public:
 		{
 			colorLoc = glGetAttribLocation(shader, "color");
 			glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
-			glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(Color), colors, GL_STATIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Color), colors, GL_STATIC_DRAW);
 			glEnableVertexAttribArray(colorLoc);
 			glVertexAttribPointer(colorLoc, 4, GL_FLOAT, 0, 0, 0);
 			vbo = buffers[1];
 		}
 
+		mvpMatrixLoc = glGetUniformLocation(shader, "mvpMatrix");
+		if (useInstance)
+		{
+
+			glBindBuffer(GL_ARRAY_BUFFER, buffers[3]);
+
+			for (unsigned int i = 0; i < 4; i++) {
+				glEnableVertexAttribArray(mvpMatrixLoc + i);
+				glVertexAttribPointer(mvpMatrixLoc + i, 4, GL_FLOAT, GL_FALSE, sizeof(Matrix4),
+					(const GLvoid*)(sizeof(GLfloat)* i * 4));
+				glVertexAttribDivisor(mvpMatrixLoc + i, 1);
+			}
+		}
+
 		// bind buffer for indices and copy data into buffer
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[2]);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, num_indices * sizeof(GLushort), indices, GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices * sizeof(GLushort), indices, GL_STATIC_DRAW);
 		vio = buffers[2];
-
-		mvpMatrixLoc = glGetUniformLocation(shader, "mvpMatrix");
 	}
 	bool useMipmaps = false;
-	virtual void render_self(Matrix4 &self) = 0;
+	bool useInstance = false;
+	bool cullFace = true;
+	int numIndices;
+	int numVertices;
+	GLuint buffers[4];
+	void render_self(Matrix4 &self){
+		// Draw the quads
+		if (!cullFace) glDisable(GL_CULL_FACE);
+		if (isTextureShader)
+		{
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, textureID);
+			glUniform1i(textUnitLoc, 0);
+		}
+
+		glDrawElements(
+			GL_TRIANGLES,            // mode
+			numIndices,					 // count
+			GL_UNSIGNED_SHORT,   // type
+			(void*)0             // element array buffer offset
+			);
+		if (!cullFace) glEnable(GL_CULL_FACE);
+	}
 };
 
 class Entity {
@@ -150,10 +182,14 @@ public:
 	void render(Matrix4 &parent) {
 		auto self = parent * matrix();
 		if (renderable) {
-			glUseProgram(renderable->shader);
-			glUniformMatrix4fv(renderable->mvpMatrixLoc, 1, true, (GLfloat*)&self);
-			glBindVertexArray(renderable->vao);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderable->vio);
+			if (!renderable->useInstance)
+			{
+
+				glUseProgram(renderable->shader);
+				glUniformMatrix4fv(renderable->mvpMatrixLoc, 1, true, (GLfloat*)&self);
+				glBindVertexArray(renderable->vao);
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderable->vio);
+			}
 			renderable->render_self(self);
 		}
 
@@ -278,7 +314,6 @@ public:
 class Terrain :public Renderable
 {
 public:
-	int num_indices;
 	Terrain(GLuint shaderid, bool useTexture = false, GLuint imageId = 0, bool mipmap = true, int subdivides = 1, float imageRatio = 1.0f)
 	{
 		shader = shaderid;
@@ -288,15 +323,15 @@ public:
 		auto sub_x = 1.0f / subdivides;
 		auto sub_z = 1.0f / subdivides;
 
-		int num_vertices = pow((subdivides + 1), 2);
-		num_indices = 6 * pow(subdivides, 2);
+		numVertices = pow((subdivides + 1), 2);
+		numIndices = 6 * pow(subdivides, 2);
 
 		std::vector<Vertex> vertices;
-		vertices.resize(num_vertices);
+		vertices.resize(numVertices);
 		std::vector<Color> colors;
-		colors.resize(num_vertices);
+		colors.resize(numVertices);
 		std::vector<Texture2D> tCoords;
-		tCoords.resize(num_vertices);
+		tCoords.resize(numVertices);
 
 		int width, height, channels;
 		unsigned char *ht_map;
@@ -313,7 +348,7 @@ public:
 
 		int index = 0;
 		std::vector<GLushort> indices;
-		indices.resize(num_indices);
+		indices.resize(numIndices);
 		for (auto i = 0; i < subdivides; i += 1) for (auto j = 0; j < subdivides; j += 1)
 		{
 			indices[index++] = j + i * (subdivides + 1);
@@ -325,33 +360,13 @@ public:
 
 		}
 
-		init_geometry(&vertices[0], &colors[0], num_vertices, &indices[0], num_indices, &tCoords[0], imageId);
-	}
-
-	void render_self(Matrix4 &self) {
-		// Draw the quads
-		glDisable(GL_CULL_FACE);
-		if (isTextureShader)
-		{
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, textureID);
-			glUniform1i(textUnitLoc, 0);
-		}
-
-		glDrawElements(
-			GL_TRIANGLES,            // mode
-			num_indices,					 // count
-			GL_UNSIGNED_SHORT,   // type
-			(void*)0             // element array buffer offset
-			);
-		glEnable(GL_CULL_FACE);
+		init_geometry(&vertices[0], &colors[0], &indices[0], &tCoords[0], imageId);
 	}
 };
 
 class Plane :public Renderable
 {
 public:
-	int num_indices;
 	Plane(float width, float height, GLuint shaderid, bool useTexture = false, GLuint imageId = 0, bool mipmap = true, int subdivides = 1, float imageRatio = 1.0f) {
 		shader = shaderid;
 		isTextureShader = useTexture;
@@ -365,15 +380,15 @@ public:
 		auto sub_x = width / subdivides;
 		auto sub_y = height / subdivides;
 
-		int num_vertices = pow((subdivides + 1), 2);
-		num_indices = 6 * pow(subdivides, 2);
+		numVertices = pow((subdivides + 1), 2);
+		numIndices = 6 * pow(subdivides, 2);
 		 
 		std::vector<Vertex> vertices;
-		vertices.resize(num_vertices);
+		vertices.resize(numVertices);
 		std::vector<Color> colors;
-		colors.resize(num_vertices);
+		colors.resize(numVertices);
 		std::vector<Texture2D> tCoords;
-		tCoords.resize(num_vertices);
+		tCoords.resize(numVertices);
 
 		int width2, height2, channels;
 		unsigned char *ht_map;
@@ -387,7 +402,7 @@ public:
 
 		int index = 0;
 		std::vector<GLushort> indices;
-		indices.resize(num_indices);
+		indices.resize(numIndices);
 		for (auto i = 0; i < subdivides; i += 1) for (auto j = 0; j < subdivides; j += 1)
 		{
 			indices[index++] = j + i * (subdivides+1);
@@ -399,41 +414,22 @@ public:
 
 		}
 
-		init_geometry(&vertices[0], &colors[0], num_vertices, &indices[0], num_indices, &tCoords[0], imageId);
-	}
-
-	void render_self(Matrix4 &self) {
-		// Draw the quads
-		glDisable(GL_CULL_FACE);
-		if (isTextureShader)
-		{
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, textureID);
-			glUniform1i(textUnitLoc, 0);
-		}
-
-		glDrawElements(
-			GL_TRIANGLES,            // mode
-			num_indices,					 // count
-			GL_UNSIGNED_SHORT,   // type
-			(void*)0             // element array buffer offset
-			);
-		glEnable(GL_CULL_FACE);
+		init_geometry(&vertices[0], &colors[0], &indices[0], &tCoords[0], imageId);
 	}
 };
 
 class Cylinder: public Renderable {
 public:
-	int numindices;
-	Cylinder(int sectors, float topradius, float botradius, float length, GLuint shaderid, bool useTexture=false, GLuint imageId = 0) {
+	Cylinder(int sectors, float topradius, float botradius, float length, GLuint shaderid, bool useTexture=false, GLuint imageId = 0, bool useInst = false) {
 		shader = shaderid;
 		isTextureShader = useTexture;
+		useInstance = useInst;
 		useMipmaps = true;
-		auto const num_vertices = (sectors+1) * 2;
-		auto half = num_vertices / 2;
+		numVertices = (sectors+1) * 2;
+		auto half = numVertices / 2;
 		auto S = 1. / (float)(sectors);
 
-		Vertex* vertices = new Vertex[num_vertices];
+		Vertex* vertices = new Vertex[numVertices];
 		useMipmaps = true;
 		for (auto s = 0; s < half; s++) {
 			auto x = cos(2 * Math::PI * s * S);
@@ -445,8 +441,8 @@ public:
 
 
 		std::vector<GLushort> indices;
-		numindices = (sectors - 2) * 3 * 2 + sectors * 6;
-		indices.resize(numindices);
+		numIndices = (sectors - 2) * 3 * 2 + sectors * 6;
+		indices.resize(numIndices);
 		auto i = indices.begin();
 		for (auto s = 1; s < sectors - 1; s++) {//top
 			*i++ = 0;
@@ -467,14 +463,13 @@ public:
 			*i++ = half + s + 1;
 		}
 
+		Color *colors = new Color[numVertices];
 
-		Color *colors = new Color[num_vertices];
-
-		for (auto i = 0; i < num_vertices; ++i) {
+		for (auto i = 0; i < numVertices; ++i) {
 			colors[i] = Color(0.5,0.3,0, 1);
 		}
 
-		Texture2D *tCoords = new Texture2D[num_vertices];
+		Texture2D *tCoords = new Texture2D[numVertices];
 		for (auto i = 0; i < half; i++){
 			tCoords[i].u = S*i;
 			tCoords[i].v = 0;
@@ -482,24 +477,7 @@ public:
 			tCoords[i + half].v = 1;
 		}
 
-		init_geometry(vertices, colors, num_vertices, &indices[0], indices.size(), tCoords, imageId);
-	}
-
-	void render_self(Matrix4 &self) {
-		if (isTextureShader)
-		{
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, textureID);
-			glUniform1i(textUnitLoc, 0);
-		}
-
-		// Draw the quads
-		glDrawElements(
-			GL_TRIANGLES,            // mode
-			numindices,		     // count
-			GL_UNSIGNED_SHORT,   // type
-			(void*)0             // element array buffer offset
-			);
+		init_geometry(vertices, colors, &indices[0], tCoords, imageId);
 	}
 };
 

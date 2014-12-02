@@ -97,6 +97,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="instanceTextureShader.vert" />
     <None Include="shader.frag" />
     <None Include="shader.vert" />
     <None Include="shader2.frag" />

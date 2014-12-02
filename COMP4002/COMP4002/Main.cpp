@@ -150,7 +150,7 @@ void createEntities() {
 	*/
 	//TreeLSystem modelTree = TreeLSystem(Vector3(0, 0, -300), shader2, true, images["nature_bark.png"], images["templeaf.png"]);
 	//Entity *skeleton = modelTree.children.front();
-	entities.push_back(new TreeNaive(Vector3(200, 0, -200), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
+	//entities.push_back(new TreeNaive(Vector3(200, 0, -200), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
 	//entities.push_back(&modelTree);
 
 	//for (auto i = 0; i < 10; i++)
@@ -159,7 +159,10 @@ void createEntities() {
 
 //	}
 
-	entities.push_back(new TreeLSystem(Vector3(200, 0, -200), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
+	//entities.push_back(new TreeLSystem(Vector3(200, 0, -200), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
+	entities.push_back(new Entity(Vector3(0, 0, 0), new Cylinder(30, 5, 5, 10, shader2, true, images["nature_bark.png"], false)));
+
+	entities.push_back(new Entity(Vector3(0, 0, 0), new Cylinder(30, 5, 5, 10, shader4, true, images["nature_bark.png"], true)));
 	//entities.push_back(new BushLSystem(Vector3(100, 0, -250), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
 }
 
@@ -205,6 +208,7 @@ int main(int argc, char **argv) {
 	shader1 = setupShaders("shader.vert", "shader.frag");
 	shader2 = setupShaders("shader2.vert", "shader2.frag");
 	shader3 = setupShaders("skybox.vert", "skybox.frag");
+	shader4 = setupShaders("instanceTextureShader.vert", "shader2.frag");
 	loadImages();
 	skybox = new Skybox(shader3, images["emerald_skybox"]);
 
