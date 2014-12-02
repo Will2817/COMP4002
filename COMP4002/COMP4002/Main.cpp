@@ -174,6 +174,19 @@ void createEntities() {
 	//entities.push_back(new BushLSystem(Vector3(100, 0, -250), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
 }
 
+// Function called when timer ends
+void timer(int id) {
+	glutPostRedisplay(); // Tell GLUT to call it's glutDisplayFunc
+}
+
+// Set new timer and render
+void display(void)
+{
+	glutTimerFunc(17, timer, 1);                   //Call timer function in at least 17 milliseconds
+	
+	renderWin();            //Call our render function
+}
+
 int main(int argc, char **argv) {
 	srand(10);
 
@@ -183,8 +196,7 @@ int main(int argc, char **argv) {
 	glutInitWindowSize(650, 500);
 	glutCreateWindow("Graphics");
 
-	glutDisplayFunc(renderWin);
-	glutIdleFunc(renderWin);
+	glutDisplayFunc(display);
 	glutReshapeFunc(resizeWin);
 	glutKeyboardFunc(onKeyDown);
 	glutKeyboardUpFunc(onKeyUp);
