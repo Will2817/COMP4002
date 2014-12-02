@@ -163,6 +163,14 @@ void createEntities() {
 	entities.push_back(new Entity(Vector3(0, 0, 0), new Cylinder(30, 5, 5, 10, shader2, true, images["nature_bark.png"], false)));
 
 	entities.push_back(new Entity(Vector3(0, 0, 0), new Cylinder(30, 5, 5, 10, shader4, true, images["nature_bark.png"], true)));
+	/*
+	entities.push_back(new TreeLSystem(Vector3(200, 0, -200), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
+	entities.push_back(new TreeLSystem(Vector3(200, 0, -400), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
+	entities.push_back(new TreeLSystem(Vector3(400, 0, -200), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
+	entities.push_back(new TreeLSystem(Vector3(400, 0, -400), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
+	entities.push_back(new TreeLSystem(Vector3(-200, 0, -200), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
+	entities.push_back(new TreeLSystem(Vector3(400, 0, -400), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
+*/
 	//entities.push_back(new BushLSystem(Vector3(100, 0, -250), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
 }
 

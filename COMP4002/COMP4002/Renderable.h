@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <stdio.h>
 #include <vector>
 #include <glut.h>		   // The GL Utility Toolkit (GLUT) Header
 #include <glew.h>
@@ -613,6 +614,7 @@ public:
 	}
 };
 
+/*
 class BushLSystem : public Entity {
 public:
 	std::vector<Renderable*> renderables;
@@ -694,6 +696,7 @@ public:
 		int index = max_depth - depth;
 		if (renderables.size() <= index) {
 			if (index == max_depth - 1) {
+				
 				renderables.push_back(new Leaf(leaf_img));
 			}
 			else {
@@ -703,3 +706,4 @@ public:
 		return renderables[index];
 	}
 };
+*/
