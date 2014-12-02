@@ -115,9 +115,9 @@ public:
 			vbo = buffers[1];
 		}
 
-		mvpMatrixLoc = glGetUniformLocation(shader, "mvpMatrix");
 		if (useInstance)
 		{
+			mvpMatrixLoc = glGetAttribLocation(shader, "mvpMatrix");
 
 			glBindBuffer(GL_ARRAY_BUFFER, buffers[3]);
 
@@ -127,6 +127,9 @@ public:
 					(const GLvoid*)(sizeof(GLfloat)* i * 4));
 				glVertexAttribDivisor(mvpMatrixLoc + i, 1);
 			}
+		}
+		else{
+			mvpMatrixLoc = glGetUniformLocation(shader, "mvpMatrix");
 		}
 
 		// bind buffer for indices and copy data into buffer
@@ -140,22 +143,57 @@ public:
 	int numIndices;
 	int numVertices;
 	GLuint buffers[4];
-	void render_self(Matrix4 &self){
+	void render_self(Matrix4 &parent, Matrix4 &self, std::vector<Matrix4> &modelMats){
 		// Draw the quads
 		if (!cullFace) glDisable(GL_CULL_FACE);
+
+		glUseProgram(shader);
+		glBindVertexArray(vao);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,vio);
+
 		if (isTextureShader)
 		{
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, textureID);
 			glUniform1i(textUnitLoc, 0);
 		}
+		if (useInstance)
+		{
+			/*int numInstances = modelMats.size();
+			std::vector<Matrix4> mvpMats;
+			mvpMats.resize(numInstances);
+			int index = 0;
+			for (auto it = modelMats.begin(); it != modelMats.end(); ++it)
+			{
+				mvpMats[index++] = parent * (*it) * self;
+			}*/
+			int numInstances = 100;
+			Matrix4 mvpMats[100];
+			for (int i = 0; i < 10; i++) for (int j = 0; j < 10; j++)
+			{
+				mvpMats[i * 10 + j] = parent * modelMats[i*10+j] * self;
+			}
 
-		glDrawElements(
-			GL_TRIANGLES,            // mode
-			numIndices,					 // count
-			GL_UNSIGNED_SHORT,   // type
-			(void*)0             // element array buffer offset
-			);
+			glBindBuffer(GL_ARRAY_BUFFER, buffers[3]);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(Matrix4)* numInstances, &mvpMats[0], GL_DYNAMIC_DRAW);
+			glBindVertexArray(vao);
+
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vio);
+			glDrawElementsInstanced(GL_TRIANGLES,
+				numIndices,
+				GL_UNSIGNED_SHORT,
+				(void*)0,
+				numInstances);
+		}
+		else {
+			glUniformMatrix4fv(mvpMatrixLoc, 1, true, (GLfloat*)&(parent*self));
+			glDrawElements(
+				GL_TRIANGLES,            // mode
+				numIndices,					 // count
+				GL_UNSIGNED_SHORT,   // type
+				(void*)0             // element array buffer offset
+				);
+		}
 		if (!cullFace) glEnable(GL_CULL_FACE);
 	}
 };
@@ -180,26 +218,18 @@ public:
 
 	void setScale(Vector3 _scale) { scale = _scale; }
 
-	void render(Matrix4 &parent) {
+	void render(Matrix4 vpMatrix, Matrix4 &parent, std::vector<Matrix4> &modelMats) {
 		auto self = parent * matrix();
 		if (renderable) {
-			if (!renderable->useInstance)
-			{
-
-				glUseProgram(renderable->shader);
-				glUniformMatrix4fv(renderable->mvpMatrixLoc, 1, true, (GLfloat*)&self);
-				glBindVertexArray(renderable->vao);
-				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderable->vio);
-			}
-			renderable->render_self(self);
+			renderable->render_self(vpMatrix, self, modelMats);
 		}
 
-		render_children(self);
+		render_children(vpMatrix, self, modelMats);
 	}
 
-	void render_children(Matrix4 self) {
+	void render_children(Matrix4 vpMatrix, Matrix4 self, std::vector<Matrix4> &modelMats) {
 		for (auto it = children.begin(); it != children.end(); ++it) {
-			(*it)->render(self);
+			(*it)->render(vpMatrix, self, modelMats);
 		}
 	}
 
@@ -368,10 +398,11 @@ public:
 class Plane :public Renderable
 {
 public:
-	Plane(float width, float height, GLuint shaderid, bool useTexture = false, GLuint imageId = 0, bool mipmap = true, int subdivides = 1, float imageRatio = 1.0f) {
+	Plane(float width, float height, GLuint shaderid, bool useTexture = false, GLuint imageId = 0, bool mipmap = true, int subdivides = 1, float imageRatio = 1.0f, bool useInst = false) {
 		shader = shaderid;
 		isTextureShader = useTexture;
 		useMipmaps = mipmap;
+		useInstance = useInst;
 
 		auto min_x = -width / 2;
 		auto max_x = width / 2;
@@ -484,7 +515,9 @@ public:
 
 class Leaf : public Plane {
 public: 
-	Leaf(GLuint imageId) : Plane (8, 12, shader2, true, imageId){}
+	Leaf(GLuint shaderId, GLuint imageId, bool useInst = false) : Plane(8, 12, shaderId, true, imageId,true,1,1,useInst){
+		cullFace = false;
+	}
 };
 
 class TreeNaive: public Entity {
@@ -510,7 +543,7 @@ public:
 				renderables.push_back(new Cylinder(10, next_width, base_width, height, shaderid, useTexture, barkimage));
 			}
 			else {
-				renderables.push_back(new Leaf(leafimage));
+				renderables.push_back(new Leaf(shaderid,leafimage));
 			}
 		}
 		auto part = new Entity(pos, renderables[depth]);
@@ -537,6 +570,7 @@ public:
 	std::vector<Renderable*> renderables;
 	int max_depth = 7;
 	int min_depth = 2;
+
 	float tilt_rate = 25;
 	float height_rate = 0.5;
 	float width_rate = 0.5;
@@ -545,6 +579,7 @@ public:
 	bool texture;
 	GLuint leaf_img = 0;
 	GLuint bark_img = 0;
+	std::vector<Matrix4> leafModels;
 
 	TreeLSystem(Vector3 pos, GLuint shaderid, bool useTexture, GLuint barkImage, GLuint leafImage) 
 			: Entity(pos, 0) {
@@ -568,6 +603,7 @@ public:
 		Entity* root;
 
 		root = entity = makeEntity(v_offset, tilt, angle, parent, renderable, depth == 1);
+
 		tilt -= tilt_rate;
 		{
 			{
@@ -595,8 +631,8 @@ public:
 			entity->orientation.fromHeadPitchRoll(tilt, tilt, angle);
 		} else {
 			entity->orientation.fromHeadPitchRoll(angle, 0, tilt);
+			
 		}
-		
 		if (parent) parent->children.push_back(entity);
 		return entity;
 	}
@@ -605,9 +641,9 @@ public:
 		int index = max_depth - depth;
 		if (renderables.size() <= index) {
 			if (depth == min_depth) {
-				renderables.push_back(new Leaf(leaf_img));
+				renderables.push_back(new Leaf(shader,leaf_img,true));
 			} else {
-				renderables.push_back(new Cylinder(10, new_width, width, height, shader, texture, bark_img));
+				renderables.push_back(new Cylinder(10, new_width, width, height, shader, texture, bark_img,true));
 			}
 		}
 		return renderables[index];

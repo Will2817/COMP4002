@@ -21,6 +21,8 @@ int oldtime = 0;
 std::unordered_map<std::string, GLuint> images;
 Skybox *skybox;
 
+std::vector<Matrix4> modelMatrices;
+
 /*****************************************************************************/
 void Check_GPU_Status();
 
@@ -89,10 +91,10 @@ void renderWin(void) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	auto mvMatrix = projectionMatrix * cam.getViewMatrix();
-
+	auto rootMatrix = Matrix4::IDENTITY;
 	skybox->render_self(mvMatrix,cam.getPosition());
 	for (auto it = entities.begin(); it != entities.end(); ++it) {
-		(*it)->render(mvMatrix);
+		(*it)->render(mvMatrix, rootMatrix,modelMatrices);
 	}
 
 	glutSwapBuffers();
@@ -141,7 +143,7 @@ void loadImages()
 void createEntities() {
 	entities.push_back(new Entity(Vector3(0, 0, 0), new Terrain(shader2, true,images["ground_texture.png"],false,200,10.0f)));
 	entities.back()->setScale(Vector3(10000, 1000, 10000));
-	entities.push_back(new Entity(Vector3(0, 0, -100), new Leaf(images["templeaf.png"])));
+	entities.push_back(new Entity(Vector3(0, 0, 0), new Leaf(shader4, images["templeaf.png"],true)));
 	/*
 	for (auto i = 0; i < 5; ++i) {
 		auto tree = ;
@@ -153,6 +155,7 @@ void createEntities() {
 	//entities.push_back(new TreeNaive(Vector3(200, 0, -200), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
 	//entities.push_back(&modelTree);
 
+
 	//for (auto i = 0; i < 10; i++)
 //	{
 	//	entities.push_back(new Entity(Vector3(200 + 50 * i, 0, -300), NULL));
@@ -160,12 +163,20 @@ void createEntities() {
 //	}
 
 	//entities.push_back(new TreeLSystem(Vector3(200, 0, -200), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
-	entities.push_back(new Entity(Vector3(0, 0, 0), new Cylinder(30, 5, 5, 10, shader2, true, images["nature_bark.png"], false)));
-
-	entities.push_back(new Entity(Vector3(0, 0, 0), new Cylinder(30, 5, 5, 10, shader4, true, images["nature_bark.png"], true)));
+	//entities.push_back(new Entity(Vector3(0, 0, 0), new Cylinder(30, 5, 5, 10, shader2, true, images["nature_bark.png"], false)));
 	/*
-	entities.push_back(new TreeLSystem(Vector3(200, 0, -200), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
-	entities.push_back(new TreeLSystem(Vector3(200, 0, -400), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
+	entities.push_back(new Entity(Vector3(0, 0, 0), new Cylinder(30, 5, 5, 10, shader4, true, images["nature_bark.png"], true)));
+	entities.back()->children.push_back(new Entity(Vector3(20, 40, 0), new Cylinder(30, 5, 5, 10, shader4, true, images["nature_bark.png"], true)));
+	entities.back()->children.push_back(new Entity(Vector3(-20, 40, 0), new Cylinder(30, 5, 5, 10, shader4, true, images["nature_bark.png"], true)));
+	entities.back()->orientation.fromHeadPitchRoll(90, 0, 90);*/
+
+	for (int i = 0; i < 10;i++) for (int j = 0; j < 10; j++)
+	{
+		modelMatrices.push_back(Matrix4::translation(100 * j, 0, 100 * i));
+	}
+
+	entities.push_back(new TreeLSystem(Vector3(200, 0, -200), shader4, true, images["nature_bark.png"], images["templeaf.png"]));
+	/*entities.push_back(new TreeLSystem(Vector3(200, 0, -400), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
 	entities.push_back(new TreeLSystem(Vector3(400, 0, -200), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
 	entities.push_back(new TreeLSystem(Vector3(400, 0, -400), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
 	entities.push_back(new TreeLSystem(Vector3(-200, 0, -200), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
