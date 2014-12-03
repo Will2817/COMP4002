@@ -162,27 +162,17 @@ public:
 		glBindVertexArray(vao);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,vio);
 
-		if (isTextureShader)
-		{
+		if (isTextureShader){
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, textureID);
 			glUniform1i(textUnitLoc, 0);
 		}
-		if (useInstance)
-		{
-			/*int numInstances = modelMats.size();
+		if (useInstance){
+			int numInstances = modelMats.size();
 			std::vector<Matrix4> mvpMats;
-			mvpMats.resize(numInstances);
-			int index = 0;
-			for (auto it = modelMats.begin(); it != modelMats.end(); ++it)
-			{
-				mvpMats[index++] = parent * (*it) * self;
-			}*/
-			int numInstances = 100;
-			Matrix4 mvpMats[100];
-			for (int i = 0; i < 10; i++) for (int j = 0; j < 10; j++)
-			{
-				mvpMats[i * 10 + j] = parent * modelMats[i*10+j] * self;
+			mvpMats.reserve(numInstances);
+			for (int i = 0; i < numInstances; ++i) {
+				mvpMats.push_back(parent * modelMats[i] * self);
 			}
 
 			glBindBuffer(GL_ARRAY_BUFFER, buffers[3]);
@@ -195,8 +185,7 @@ public:
 				GL_UNSIGNED_SHORT,
 				(void*)0,
 				numInstances);
-		}
-		else {
+		} else {
 			glUniformMatrix4fv(mvpMatrixLoc, 1, true, (GLfloat*)&(parent*self));
 			glDrawElements(
 				GL_TRIANGLES,            // mode

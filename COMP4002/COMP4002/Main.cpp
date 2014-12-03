@@ -18,6 +18,7 @@ std::vector<Entity*> entities = std::vector<Entity*>();
 bool keys[128] = { false };
 bool specials[256] = { false };
 int oldtime = 0;
+float worldSize = 1500, terrainHeight = 200;
 std::unordered_map<std::string, GLuint> images;
 Skybox *skybox;
 HeightMap h_map;
@@ -26,6 +27,14 @@ std::vector<Matrix4> modelMatrices;
 
 /*****************************************************************************/
 void Check_GPU_Status();
+
+void makeTree() {
+	auto x = randf() * worldSize;
+	auto z = randf() * worldSize;
+	auto mat = Matrix4::translation(x, h_map.lookup(x, z) * terrainHeight, z);
+	Quaternion rot; rot.fromAxisAngle(Vector3(0, 1, 0), randf() * 360);
+	modelMatrices.push_back(mat * rot.toMatrix4());
+}
 
 void resizeWin(int w, int h) {
 
@@ -59,18 +68,6 @@ void updateState() {
 	if (keys['w'])					cam.move(mspeed);
 	if (keys['s'])					cam.move(-mspeed);
 
-	/*
-	if (keys['i'])	entities[0]->position.z += 0.1;
-	if (keys['k'])	entities[0]->position.z -= 0.1;
-	if (keys['j'])	entities[0]->position.x += 0.1;
-	if (keys['l'])	entities[0]->position.x -= 0.1;
-
-	auto spin = Quaternion();
-	spin.fromHeadPitchRoll(0, 0, 0.1);
-	entities[0]->children[0]->orientation *= spin;
-	entities[0]->children[1]->orientation *= spin * spin;
-	*/
-
 }
 
 void renderWin(void) {
@@ -103,6 +100,8 @@ void renderWin(void) {
 
 void onKeyDown(unsigned char key, int x, int y) {
 	keys[key] = true;
+
+	if (key == 'c') makeTree();
 }
 
 void onKeyUp(unsigned char key, int x, int y) {
@@ -143,46 +142,17 @@ void loadImages()
 
 void createEntities() {
 	h_map = HeightMap("heightmap3.jpg");
-	entities.push_back(new Entity(Vector3(0, 0, 0), new Terrain(shader2,h_map, true,images["ground_texture.png"],false,200,10.0f)));
-	entities.back()->setScale(Vector3(10000, 1000, 10000));
-	//entities.push_back(new Entity(Vector3(0, 0, 0), new Leaf(shader4, images["templeaf.png"],true)));
-	//TreeLSystem modelTree = TreeLSystem(Vector3(0, 0, -300), shader2, true, images["nature_bark.png"], images["templeaf.png"]);
-	//Entity *skeleton = modelTree.children.front();
-	//entities.push_back(new TreeNaive(Vector3(200, 0, -200), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
-	//entities.push_back(&modelTree);
+	entities.push_back(new Entity(Vector3(0, 0, 0), new Terrain(shader2, h_map, true, images["ground_texture.png"], false, 200, 10.0f)));
+	entities.back()->setScale(Vector3(worldSize, terrainHeight, worldSize));
 
-
-	//for (auto i = 0; i < 10; i++)
-//	{
-	//	entities.push_back(new Entity(Vector3(200 + 50 * i, 0, -300), NULL));
-
-//	}
-
-	//entities.push_back(new TreeLSystem(Vector3(200, 0, -200), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
-	//entities.push_back(new Entity(Vector3(0, 0, 0), new Cylinder(30, 5, 5, 10, shader2, true, images["nature_bark.png"], false)));
-	/*
-	entities.push_back(new Entity(Vector3(0, 0, 0), new Cylinder(30, 5, 5, 10, shader4, true, images["nature_bark.png"], true)));
-	entities.back()->children.push_back(new Entity(Vector3(20, 40, 0), new Cylinder(30, 5, 5, 10, shader4, true, images["nature_bark.png"], true)));
-	entities.back()->children.push_back(new Entity(Vector3(-20, 40, 0), new Cylinder(30, 5, 5, 10, shader4, true, images["nature_bark.png"], true)));
-	entities.back()->orientation.fromHeadPitchRoll(90, 0, 90);*/
-
-	for (int i = 0; i < 10;i++) for (int j = 0; j < 10; j++)
-	{
-		modelMatrices.push_back(Matrix4::translation(100 * j, 0, 100 * i));
+	for (int i = 0; i < 10; ++i) {
+		makeTree();
 	}
 
 	std::vector<Matrix4> matrices;
 	matrices.push_back(Matrix4::IDENTITY);
 
 	entities.push_back(new TreeLSystem(Vector3(200, 0, -200), shader4, true, images["nature_bark.png"], images["templeaf.png"]));
-	entities.push_back(new Entity(Vector3(0, 0, 0), new SuperLeaf(shader4, 8, 12, images["templeaf.png"], matrices, true, true)));
-	/*entities.push_back(new TreeLSystem(Vector3(200, 0, -400), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
-	entities.push_back(new TreeLSystem(Vector3(400, 0, -200), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
-	entities.push_back(new TreeLSystem(Vector3(400, 0, -400), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
-	entities.push_back(new TreeLSystem(Vector3(-200, 0, -200), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
-	entities.push_back(new TreeLSystem(Vector3(400, 0, -400), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
-*/
-	//entities.push_back(new BushLSystem(Vector3(100, 0, -250), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
 }
 
 // Function called when timer ends
@@ -233,8 +203,8 @@ int main(int argc, char **argv) {
 	glClearColor(0, 1.0, 1.0, 1.0);
 	glClearDepth(1.0f);
 
-	cam = Camera(Vector3(0, 0, 10), Vector3(0, 0, 0), Vector3(0, 1, 0));
-	cam.setPosition(Vector3(100, 100, 10));
+	cam = Camera(Vector3(2000, 300, 200), Vector3(0, 0, 0), Vector3(0, 1, 0));
+	// cam.setPosition(Vector3(2000, 300, 200));
 
 	shader1 = setupShaders("shader.vert", "shader.frag");
 	shader2 = setupShaders("shader2.vert", "shader2.frag");
