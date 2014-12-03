@@ -15,6 +15,9 @@
 Camera cam;
 Matrix4 projectionMatrix;
 std::vector<Entity*> entities = std::vector<Entity*>();
+std::vector<Entity*> scene1 = std::vector<Entity*>();
+std::vector<Entity*> scene2 = std::vector<Entity*>();
+
 bool keys[128] = { false };
 bool specials[256] = { false };
 int oldtime = 0;
@@ -22,7 +25,7 @@ float worldSize = 1500, terrainHeight = 200;
 std::unordered_map<std::string, GLuint> images;
 Skybox *skybox;
 HeightMap h_map;
-
+Entity* terrain;
 std::vector<Matrix4> modelMatrices;
 
 /*****************************************************************************/
@@ -50,7 +53,7 @@ void resizeWin(int w, int h) {
 	ratio = (1.0f * w) / h;
 	projectionMatrix = Matrix4::projection(60, ratio, 1, 10000);
 }
-
+int activeScene = 1;
 void updateState() {
 	auto time = glutGet(GLUT_ELAPSED_TIME);
 	auto delta = (time - oldtime) / 1000.0;
@@ -67,6 +70,10 @@ void updateState() {
 	if (keys['d'])					cam.strafe(mspeed);
 	if (keys['w'])					cam.move(mspeed);
 	if (keys['s'])					cam.move(-mspeed);
+
+	if (keys['1']) activeScene = 1;
+	if (keys['2']) activeScene = 2;
+	if (keys['3']) activeScene = 3;
 
 }
 
@@ -91,9 +98,29 @@ void renderWin(void) {
 	auto mvMatrix = projectionMatrix * cam.getViewMatrix();
 	auto rootMatrix = Matrix4::IDENTITY;
 	skybox->render_self(mvMatrix,cam.getPosition());
-	for (auto it = entities.begin(); it != entities.end(); ++it) {
-		(*it)->render(mvMatrix, rootMatrix,modelMatrices);
+	terrain->render(mvMatrix, rootMatrix, modelMatrices);
+
+	if (activeScene == 1)
+	{
+		for (auto it = scene1.begin(); it != scene1.end(); ++it) {
+			(*it)->render(mvMatrix, rootMatrix, modelMatrices);
+		}
 	}
+	if (activeScene == 2)
+	{
+		std::vector<Matrix4> temp;
+		temp.push_back(Matrix4::IDENTITY);
+		for (auto it = scene2.begin(); it != scene2.end(); ++it) {
+			(*it)->render(mvMatrix, rootMatrix, temp);
+		}
+	}
+	if (activeScene == 3)
+	{
+		for (auto it = entities.begin(); it != entities.end(); ++it) {
+			(*it)->render(mvMatrix, rootMatrix, modelMatrices);
+		}
+	}
+	
 
 	glutSwapBuffers();
 }
@@ -142,8 +169,8 @@ void loadImages()
 
 void createEntities() {
 	h_map = HeightMap("heightmap3.jpg");
-	entities.push_back(new Entity(Vector3(0, 0, 0), new Terrain(shader2, h_map, true, images["ground_texture.png"], false, 200, 10.0f)));
-	entities.back()->setScale(Vector3(worldSize, terrainHeight, worldSize));
+	terrain = new Entity(Vector3(0, 0, 0), new Terrain(shader2, h_map, true, images["ground_texture.png"], false, 200, 10.0f));
+	terrain->setScale(Vector3(worldSize, terrainHeight, worldSize));
 
 	for (int i = 0; i < 10; ++i) {
 		makeTree();
@@ -153,6 +180,8 @@ void createEntities() {
 	matrices.push_back(Matrix4::IDENTITY);
 
 	entities.push_back(new TreeLSystem(Vector3(0, 0, 0), shader4, true, images["nature_bark.png"], images["templeaf.png"]));
+	scene2.push_back(new TreeLSystem(Vector3(0, 0, 0), shader4, true, images["nature_bark.png"], images["templeaf.png"]));
+	scene1.push_back(new TreeNaive(Vector3(0, 0, 0), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
 }
 
 // Function called when timer ends
@@ -210,6 +239,7 @@ int main(int argc, char **argv) {
 	shader2 = setupShaders("shader2.vert", "shader2.frag");
 	shader3 = setupShaders("skybox.vert", "skybox.frag");
 	shader4 = setupShaders("instanceTextureShader.vert", "shader2.frag");
+	shader5 = setupShaders("instanceTextureShader.vert", "shader5.frag");
 	loadImages();
 	skybox = new Skybox(shader3, images["emerald_skybox"]);
 

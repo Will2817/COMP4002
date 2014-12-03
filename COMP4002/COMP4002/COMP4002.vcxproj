@@ -108,6 +108,7 @@
     <None Include="shader.vert" />
     <None Include="shader2.frag" />
     <None Include="shader2.vert" />
+    <None Include="shader5.frag" />
     <None Include="skybox.frag" />
     <None Include="skybox.vert" />
   </ItemGroup>

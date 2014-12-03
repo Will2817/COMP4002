@@ -47,7 +47,7 @@ float randf() {
 	return ((float)rand()) / (float) RAND_MAX;
 }
 
-GLuint shader1, shader2, shader3,shader4;
+GLuint shader1, shader2, shader3,shader4,shader5;
 
 struct Texture2D {
 	float u, v;
@@ -437,6 +437,8 @@ public:
 		colors.resize(numVertices);
 		std::vector<Texture2D> tCoords;
 		tCoords.resize(numVertices);
+		std::vector<Vertex> normals;
+		normals.resize(numVertices);
 
 		for (auto i = 0; i < modelMatrices.size(); i++)
 		{
@@ -444,6 +446,11 @@ public:
 			vertices[i * 4 + 1] = Vertex(multMatVec(modelMatrices[i],Vector4(max_x, min_y, 0, 1)));
 			vertices[i * 4 + 2] = Vertex(multMatVec(modelMatrices[i],Vector4(min_x, max_y, 0, 1)));
 			vertices[i * 4 + 3] = Vertex(multMatVec(modelMatrices[i],Vector4(max_x, max_y, 0, 1)));
+			normals[i * 4] = Vertex(0,0,1,1);
+			normals[i * 4 + 1] = Vertex(0, 0, 1, 1);
+			normals[i * 4 + 2] = Vertex(0, 0, 1, 1);
+			normals[i * 4 + 3] = Vertex(0, 0, 1, 1);
+
 			tCoords[i*4] = Texture2D(0,1);
 			tCoords[i*4+1] = Texture2D(1, 1);
 			tCoords[i*4+2] = Texture2D(0, 0);
@@ -471,9 +478,9 @@ class TreeNaive: public Entity {
 public:
 	std::vector<Renderable*> renderables;
 	TreeNaive(Vector3 _pos, GLuint shaderid, bool useTexture, GLuint barkimage, GLuint leafimage) : Entity(_pos, 0) {
-		float base_width = 2;
-		float width_shrink_rate = 0.8;
-		float width_to_length_rate = 6;
+		float base_width = 15;
+		float width_shrink_rate = 0.5;
+		float width_to_length_rate = 20;
 		float numsplit = 3;
 		float mingirth = 1; 
 		float curvature = 30;
@@ -537,7 +544,7 @@ public:
 		texture = useTexture;
 		Matrix4 stack = Matrix4::IDENTITY;
 		children.push_back(recurse(0, 4, 0, 0, 0, max_depth, stack));
-		superleaf = new SuperLeaf(shaderid, 8, 12, leafImage, leafModels, true, true);
+		superleaf = new SuperLeaf(shader5, 8, 12, leafImage, leafModels, true, true);
 		children.push_back(new Entity(Vector3(0, 0, 0), superleaf));
 	}
 

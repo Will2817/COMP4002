@@ -85,5 +85,8 @@
     <None Include="instanceTextureShader.vert">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="shader5.frag">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
