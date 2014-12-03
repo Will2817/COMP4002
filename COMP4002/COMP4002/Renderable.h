@@ -264,10 +264,10 @@ public:
 		for (auto i = 0; i <= subdivides; i++) for (auto j = 0; j <= subdivides; j++)
 		{
 			float s = i * sub_x;
-			float t = j*sub_z;
-			vertices[i * (subdivides + 1) + j] = Vertex(i * sub_x, h_map.lookup(s,t) , j*sub_z, 1);
-			tCoords[j + i *(subdivides + 1)] = Texture2D(((1.0f*i) / subdivides) * imageRatio, 1.0 - ((1.0f*j) / subdivides) * imageRatio);
-			colors[j + i *(subdivides + 1)] = Color(0.3, 0.5, 0, 1);
+			float t = j * sub_z;
+			vertices[i * (subdivides + 1) + j] = Vertex(s, h_map.lookup(s,t), t);
+			tCoords[j + i * (subdivides + 1)] = Texture2D(((1.0f*i) / subdivides) * imageRatio, 1.0 - ((1.0f*j) / subdivides) * imageRatio);
+			colors[j + i * (subdivides + 1)] = Color(0.3, 0.5, 0, 1);
 		}
 
 		int index = 0;

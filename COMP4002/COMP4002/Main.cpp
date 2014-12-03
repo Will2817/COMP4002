@@ -29,9 +29,9 @@ std::vector<Matrix4> modelMatrices;
 void Check_GPU_Status();
 
 void makeTree() {
-	auto x = randf() * worldSize;
-	auto z = randf() * worldSize;
-	auto mat = Matrix4::translation(x, h_map.lookup(x, z) * terrainHeight, z);
+	auto x = randf();
+	auto z = randf();
+	auto mat = Matrix4::translation(x * worldSize, h_map.lookup(x, z) * terrainHeight - 5, z * worldSize);
 	Quaternion rot; rot.fromAxisAngle(Vector3(0, 1, 0), randf() * 360);
 	modelMatrices.push_back(mat * rot.toMatrix4());
 }
@@ -152,7 +152,7 @@ void createEntities() {
 	std::vector<Matrix4> matrices;
 	matrices.push_back(Matrix4::IDENTITY);
 
-	entities.push_back(new TreeLSystem(Vector3(200, 0, -200), shader4, true, images["nature_bark.png"], images["templeaf.png"]));
+	entities.push_back(new TreeLSystem(Vector3(0, 0, 0), shader4, true, images["nature_bark.png"], images["templeaf.png"]));
 }
 
 // Function called when timer ends
