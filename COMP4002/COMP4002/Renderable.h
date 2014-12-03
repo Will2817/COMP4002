@@ -537,7 +537,7 @@ public:
 		texture = useTexture;
 		Matrix4 stack = Matrix4::IDENTITY;
 		children.push_back(recurse(0, 4, 0, 0, 0, max_depth, stack));
-		superleaf = new SuperLeaf(shaderid, 8, 12, leafImage, leafModels, false, true);
+		superleaf = new SuperLeaf(shaderid, 8, 12, leafImage, leafModels, true, true);
 		children.push_back(new Entity(Vector3(0, 0, 0), superleaf));
 	}
 
