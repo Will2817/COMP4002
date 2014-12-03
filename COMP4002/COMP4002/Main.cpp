@@ -79,8 +79,8 @@ void renderWin(void) {
 	frame++;
 	int time = glutGet(GLUT_ELAPSED_TIME);
 	if (time - timebase > 1000) {
-		sprintf(s, "Graphics FPS:%4.2f",
-			frame*1000.0 / (time - timebase));
+		sprintf(s, "Graphics FPS:%4.2f Tree: %d",
+			frame*1000.0 / (time - timebase), modelMatrices.size());
 		timebase = time;
 		frame = 0;
 		glutSetWindowTitle(s);
@@ -131,7 +131,7 @@ GLuint setupShaders(char* vert,char* frag) {
 void loadImages()
 {
 	images["nature_bark.png"] = SOIL_load_OGL_texture("nature_bark.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
-	images["templeaf.png"] = SOIL_load_OGL_texture("templeaf.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
+	images["templeaf.png"] = SOIL_load_OGL_texture("templeaf2.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
 	images["ground_texture.png"] = SOIL_load_OGL_texture("ground_texture.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_TEXTURE_REPEATS);
 	images["emerald_skybox"] = SOIL_load_OGL_cubemap("siege_right.jpg", "siege_left.jpg", "siege_top.jpg", "siege_front.jpg", "siege_front.jpg", "siege_back.jpg",
 		SOIL_LOAD_RGB,
