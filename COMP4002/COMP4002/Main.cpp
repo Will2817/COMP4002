@@ -143,7 +143,7 @@ void loadImages()
 void createEntities() {
 	entities.push_back(new Entity(Vector3(0, 0, 0), new Terrain(shader2, true,images["ground_texture.png"],false,200,10.0f)));
 	entities.back()->setScale(Vector3(10000, 1000, 10000));
-	entities.push_back(new Entity(Vector3(0, 0, 0), new Leaf(shader4, images["templeaf.png"],true)));
+	//entities.push_back(new Entity(Vector3(0, 0, 0), new Leaf(shader4, images["templeaf.png"],true)));
 	/*
 	for (auto i = 0; i < 5; ++i) {
 		auto tree = ;
@@ -175,7 +175,11 @@ void createEntities() {
 		modelMatrices.push_back(Matrix4::translation(100 * j, 0, 100 * i));
 	}
 
+	std::vector<Matrix4> matrices;
+	matrices.push_back(Matrix4::IDENTITY);
+
 	entities.push_back(new TreeLSystem(Vector3(200, 0, -200), shader4, true, images["nature_bark.png"], images["templeaf.png"]));
+	entities.push_back(new Entity(Vector3(0, 0, 0), new SuperLeaf(shader4, 8, 12, images["templeaf.png"], matrices, true, true)));
 	/*entities.push_back(new TreeLSystem(Vector3(200, 0, -400), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
 	entities.push_back(new TreeLSystem(Vector3(400, 0, -200), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
 	entities.push_back(new TreeLSystem(Vector3(400, 0, -400), shader2, true, images["nature_bark.png"], images["templeaf.png"]));

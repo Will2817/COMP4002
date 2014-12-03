@@ -20,6 +20,16 @@ struct Vertex {
 	Vertex(float _x, float _y, float _z, float _w) {
 		x = _x; y = _y; z = _z; w = _w;
 	}
+
+	Vertex(Vector3 _vec, float _w)
+	{
+		x = _vec.x; y = _vec.y; z = _vec.z;  w = _w;
+	}
+
+	Vertex(Vector4 _vec)
+	{
+		x = _vec.x; y = _vec.y; z = _vec.z;  w = _vec.w;
+	}
 };
 
 struct Color {
@@ -218,7 +228,7 @@ public:
 
 	void setScale(Vector3 _scale) { scale = _scale; }
 
-	void render(Matrix4 vpMatrix, Matrix4 &parent, std::vector<Matrix4> &modelMats) {
+	virtual void render(Matrix4 vpMatrix, Matrix4 &parent, std::vector<Matrix4> &modelMats) {
 		auto self = parent * matrix();
 		if (renderable) {
 			renderable->render_self(vpMatrix, self, modelMats);
@@ -520,6 +530,60 @@ public:
 	}
 };
 
+class SuperLeaf : public Renderable {
+public:
+	SuperLeaf(GLuint shaderId, int width, int height, GLuint imageId, std::vector<Matrix4> &modelMatrices,bool mipmap = false, bool useInst = false)
+	{
+		shader = shaderId;
+		isTextureShader = true;
+		useMipmaps = mipmap;
+		useInstance = useInst;
+		cullFace = false;
+
+		auto min_x = -width / 2;
+		auto max_x = width / 2;
+		auto min_y = 0;
+		auto max_y = height;
+
+		numVertices = 4 * modelMatrices.size();
+		numIndices = 6 * modelMatrices.size();
+
+		std::vector<Vertex> vertices;
+		vertices.resize(numVertices);
+		std::vector<Color> colors;
+		colors.resize(numVertices);
+		std::vector<Texture2D> tCoords;
+		tCoords.resize(numVertices);
+
+		for (auto i = 0; i < modelMatrices.size(); i++)
+		{
+			vertices[i * 4] = Vertex(multMatVec(modelMatrices[i], Vector4(min_x, min_y, 0,1)));
+			vertices[i * 4 + 1] = Vertex(multMatVec(modelMatrices[i],Vector4(max_x, min_y, 0, 1)));
+			vertices[i * 4 + 2] = Vertex(multMatVec(modelMatrices[i],Vector4(min_x, max_y, 0, 1)));
+			vertices[i * 4 + 3] = Vertex(multMatVec(modelMatrices[i],Vector4(max_x, max_y, 0, 1)));
+			tCoords[i*4] = Texture2D(0,1);
+			tCoords[i*4+1] = Texture2D(1, 1);
+			tCoords[i*4+2] = Texture2D(0, 0);
+			tCoords[i*4+3] = Texture2D(1, 0);
+		}
+
+		int index = 0;
+		std::vector<GLushort> indices;
+		indices.resize(numIndices);
+		for (auto i = 0; i < modelMatrices.size(); i++)
+		{
+			indices[index++] = i * 4;
+			indices[index++] = i * 4 + 1;
+			indices[index++] = i * 4 + 2;
+			indices[index++] = i * 4 + 2;
+			indices[index++] = i * 4 + 1;
+			indices[index++] = i * 4 + 3;
+		}
+
+		init_geometry(&vertices[0], &colors[0], &indices[0], &tCoords[0], imageId);
+	}
+};
+
 class TreeNaive: public Entity {
 public:
 	std::vector<Renderable*> renderables;
@@ -580,6 +644,7 @@ public:
 	GLuint leaf_img = 0;
 	GLuint bark_img = 0;
 	std::vector<Matrix4> leafModels;
+	SuperLeaf *superleaf;
 
 	TreeLSystem(Vector3 pos, GLuint shaderid, bool useTexture, GLuint barkImage, GLuint leafImage) 
 			: Entity(pos, 0) {
@@ -587,11 +652,13 @@ public:
 		bark_img = barkImage;
 		shader = shaderid;
 		texture = useTexture;
-		children.push_back(recurse(0, 4, 0, 0, 0, max_depth));
-
+		Matrix4 stack = Matrix4::IDENTITY;
+		children.push_back(recurse(0, 4, 0, 0, 0, max_depth, stack));
+		superleaf = new SuperLeaf(shaderid, 8, 12, leafImage, leafModels, true, true);
+		children.push_back(new Entity(Vector3(0, 0, 0), superleaf));
 	}
 
-	Entity* recurse(Entity* parent, float width, float v_offset, float tilt, float angle, int depth) {
+	Entity* recurse(Entity* parent, float width, float v_offset, float tilt, float angle, int depth, Matrix4 stack) {
 		
 		if (depth < min_depth) return parent; 
 
@@ -602,25 +669,29 @@ public:
 		Entity* entity;
 		Entity* root;
 
-		root = entity = makeEntity(v_offset, tilt, angle, parent, renderable, depth == 1);
-
+		root = entity = makeEntity(v_offset, tilt, angle, parent, renderable, depth == min_depth);
+		stack *= entity->matrix();
+		if (depth == min_depth)
+		{
+			leafModels.push_back(stack);
+		}
 		tilt -= tilt_rate;
 		{
 			{
-				recurse(entity, new_width, height, tilt, 0, depth - 1);
+				recurse(entity, new_width, height, tilt, 0, depth - 1, stack);
 			}
 			tilt += tilt_rate;
-			recurse(entity, new_width, height, tilt, 120, depth - 1);
+			recurse(entity, new_width, height, tilt, 120, depth - 1, stack);
 		} tilt -= tilt_rate;
 		tilt += tilt_rate;
 
 		auto new_new_width = new_width / 2;
 		{
 			tilt += tilt_rate;
-			recurse(entity, new_new_width, height * 2, tilt, 70, depth - 1);
+			recurse(entity, new_new_width, height * 2, tilt, 70, depth - 1, stack);
 		} tilt -= tilt_rate;
 		tilt -= tilt_rate;
-		recurse(entity, new_new_width, height * 2, tilt, 160, depth - 1);
+		recurse(entity, new_new_width, height * 2, tilt, 160, depth - 1, stack);
 		 
 		return root;
 	}
@@ -633,7 +704,7 @@ public:
 			entity->orientation.fromHeadPitchRoll(angle, 0, tilt);
 			
 		}
-		if (parent) parent->children.push_back(entity);
+		if (parent && !leaf) parent->children.push_back(entity);
 		return entity;
 	}
 

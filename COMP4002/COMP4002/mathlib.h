@@ -104,6 +104,7 @@ inline Vector3 operator*(float lhs, const Vector3 &rhs)
     return Vector3(lhs * rhs.x, lhs * rhs.y, lhs * rhs.z);
 }
 
+
 inline Vector3 operator-(const Vector3 &v)
 {
     return Vector3(-v.x, -v.y, -v.z);
@@ -208,6 +209,17 @@ inline void Vector3::set(float x_, float y_, float z_)
     x = x_, y = y_, z = z_;
 }
 
+
+class Vector4
+{
+
+public:
+	float x, y, z, w;
+
+	Vector4() {}
+	Vector4(float x_, float y_, float z_, float w_) { x = x_; y = y_; z = z_; w = w_; };
+};
+
 //-----------------------------------------------------------------------------
 // A homogeneous row-major 4x4 matrix class.
 //
@@ -265,6 +277,24 @@ inline Vector3 operator*(const Vector3 &lhs, const Matrix4 &rhs)
     return Vector3((lhs.x * rhs.mtx[0][0]) + (lhs.y * rhs.mtx[1][0]) + (lhs.z * rhs.mtx[2][0]),
         (lhs.x * rhs.mtx[0][1]) + (lhs.y * rhs.mtx[1][1]) + (lhs.z * rhs.mtx[2][1]),
         (lhs.x * rhs.mtx[0][2]) + (lhs.y * rhs.mtx[1][2]) + (lhs.z * rhs.mtx[2][2]));
+}
+
+inline Vector4 multMatVec(const Matrix4 &lhs, const Vector4 &rhs)
+{
+
+	return Vector4((rhs.x * lhs[0][0]) + (rhs.y * lhs[0][1]) + (rhs.z * lhs[0][2]) + (rhs.w * lhs[0][3]),
+		(rhs.x * lhs[1][0]) + (rhs.y * lhs[1][1]) + (rhs.z * lhs[1][2]) + (rhs.w * lhs[1][3]),
+		(rhs.x * lhs[2][0]) + (rhs.y * lhs[2][1]) + (rhs.z * lhs[2][2]) + (rhs.w * lhs[2][3]),
+		(rhs.x * lhs[3][0]) + (rhs.y * lhs[3][1]) + (rhs.z * lhs[3][2]) + (rhs.w * lhs[3][3]));
+}
+
+inline Vector4 multMatVec(const Vector4 &lhs, const Matrix4 &rhs)
+{
+
+	return Vector4((lhs.x * rhs[0][0]) + (lhs.y * rhs[1][0]) + (lhs.z * rhs[2][0]) + (lhs.w * rhs[3][0]),
+		(lhs.x * rhs[0][1]) + (lhs.y * rhs[1][1]) + (lhs.z * rhs[2][1]) + (lhs.w * rhs[3][1]),
+		(lhs.x * rhs[0][2]) + (lhs.y * rhs[1][2]) + (lhs.z * rhs[2][2]) + (lhs.w * rhs[3][2]),
+		(lhs.x * rhs[0][3]) + (lhs.y * rhs[1][3]) + (lhs.z * rhs[2][3]) + (lhs.w * rhs[3][3]));
 }
 
 inline Matrix4 operator*(float scalar, const Matrix4 &rhs)
