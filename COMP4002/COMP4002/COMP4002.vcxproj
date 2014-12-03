@@ -93,6 +93,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.h" />
+    <ClInclude Include="HeightMap.h" />
     <ClInclude Include="mathlib.h" />
     <ClInclude Include="Model.h" />
     <ClInclude Include="Renderable.h" />

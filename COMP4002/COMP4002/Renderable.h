@@ -7,6 +7,7 @@
 #include <math.h>
 #include "mathlib.h"
 #include <SOIL.h>
+#include "HeightMap.h"
 
 struct Vertex {
 	float x, y, z, w;
@@ -355,7 +356,7 @@ public:
 class Terrain :public Renderable
 {
 public:
-	Terrain(GLuint shaderid, bool useTexture = false, GLuint imageId = 0, bool mipmap = true, int subdivides = 1, float imageRatio = 1.0f)
+	Terrain(GLuint shaderid, HeightMap h_map,bool useTexture = false, GLuint imageId = 0, bool mipmap = true, int subdivides = 1, float imageRatio = 1.0f)
 	{
 		shader = shaderid;
 		isTextureShader = useTexture;
@@ -380,9 +381,9 @@ public:
 		
 		for (auto i = 0; i <= subdivides; i++) for (auto j = 0; j <= subdivides; j++)
 		{
-			int s = i * sub_x  * width;
-			int t = j*sub_z * height;
-			vertices[i * (subdivides + 1) + j] = Vertex(i * sub_x, ht_map[s * width + t]/255.0f, j*sub_z, 1);
+			float s = i * sub_x;
+			float t = j*sub_z;
+			vertices[i * (subdivides + 1) + j] = Vertex(i * sub_x, h_map.lookup(s,t) , j*sub_z, 1);
 			tCoords[j + i *(subdivides + 1)] = Texture2D(((1.0f*i) / subdivides) * imageRatio, 1.0 - ((1.0f*j) / subdivides) * imageRatio);
 			colors[j + i *(subdivides + 1)] = Color(0.3, 0.5, 0, 1);
 		}
