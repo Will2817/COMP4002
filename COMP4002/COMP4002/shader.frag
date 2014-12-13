@@ -1,9 +1,17 @@
 #version 150
  
-in vec3 Color;
+varying vec2 TextCoord;
 out vec4 outputF;
  
+uniform sampler2D texUnit;
+uniform vec4 eyePosition;
+
+varying vec4 worldposition;
+varying vec4 worldnormal;
+
 void main()
 {
-    outputF = vec4(Color,1.0);
+	vec4 rcolor = texture(texUnit, TextCoord);
+	if (rcolor.w < 0.3) discard;
+	outputF = rcolor;
 }

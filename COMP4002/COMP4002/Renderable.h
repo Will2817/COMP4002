@@ -59,6 +59,23 @@ struct Texture2D {
 	}
 };
 
+struct Branch {
+	float toprad;
+	float botrad;
+	float height;
+	Matrix4 transform;
+
+	Branch() {}
+
+	Branch(float top, float bot, float hei, Matrix4 trans)
+	{
+		toprad = top;
+		botrad = bot;
+		height = hei;
+		transform = trans;
+	}
+};
+
 int bark_img_width, bark_img_height, leaf_image_width, leaf_image_height;
 unsigned char* bark_img;
 unsigned char* leaf_img;
@@ -69,14 +86,14 @@ public:
 	GLuint shader;
 	bool isTextureShader;
 	GLuint textureID;
-	GLuint mvpMatrixLoc, vertexLoc, colorLoc, textUnitLoc, textCoordLoc;
+	GLuint mvpMatrixLoc, vertexLoc, colorLoc,normalLoc, textUnitLoc, textCoordLoc, camPosLoc, modelMatrixLoc, instanceMatrixLoc;
 
-	void init_geometry(Vertex* vertices, Color* colors, GLushort* indices, Texture2D *tCoords = 0, GLuint imageId = 0) {
+	void init_geometry(Vertex* vertices, Color* colors,Vertex* normals, GLushort* indices, Texture2D *tCoords = 0, GLuint imageId = 0) {
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
 
 		// Generate slots for the vertex and color buffers
-		glGenBuffers(4, buffers);
+		glGenBuffers(5, buffers);
 
 		// bind buffer for vertices and copy data into buffer
 		vertexLoc = glGetAttribLocation(shader, "position");
@@ -85,11 +102,17 @@ public:
 		glEnableVertexAttribArray(vertexLoc);
 		glVertexAttribPointer(vertexLoc, 4, GL_FLOAT, 0, 0, 0);
 
+		normalLoc = glGetAttribLocation(shader, "normal");
+		glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
+		glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Vertex), normals, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(normalLoc);
+		glVertexAttribPointer(normalLoc, 4, GL_FLOAT, 0, 0, 0);
+
 		// bind buffer for colors and copy data into buffer
 		if (isTextureShader)
 		{
 			textCoordLoc = glGetAttribLocation(shader, "textCoord");
-			glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
+			glBindBuffer(GL_ARRAY_BUFFER, buffers[2]);
 			glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Texture2D), tCoords, GL_STATIC_DRAW);
 			glEnableVertexAttribArray(textCoordLoc);
 			glVertexAttribPointer(textCoordLoc, 2, GL_FLOAT, 0, 0, 0);
@@ -119,48 +142,53 @@ public:
 		else
 		{
 			colorLoc = glGetAttribLocation(shader, "color");
-			glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
+			glBindBuffer(GL_ARRAY_BUFFER, buffers[2]);
 			glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Color), colors, GL_STATIC_DRAW);
 			glEnableVertexAttribArray(colorLoc);
 			glVertexAttribPointer(colorLoc, 4, GL_FLOAT, 0, 0, 0);
-			vbo = buffers[1];
 		}
 
+		mvpMatrixLoc = glGetUniformLocation(shader, "mvpMatrix");
 		if (useInstance)
 		{
-			mvpMatrixLoc = glGetAttribLocation(shader, "mvpMatrix");
+			instanceMatrixLoc = glGetAttribLocation(shader, "instanceMatrix");
 
-			glBindBuffer(GL_ARRAY_BUFFER, buffers[3]);
+			glBindBuffer(GL_ARRAY_BUFFER, buffers[4]);
 
 			for (unsigned int i = 0; i < 4; i++) {
-				glEnableVertexAttribArray(mvpMatrixLoc + i);
-				glVertexAttribPointer(mvpMatrixLoc + i, 4, GL_FLOAT, GL_FALSE, sizeof(Matrix4),
+				glEnableVertexAttribArray(instanceMatrixLoc + i);
+				glVertexAttribPointer(instanceMatrixLoc + i, 4, GL_FLOAT, GL_FALSE, sizeof(Matrix4),
 					(const GLvoid*)(sizeof(GLfloat)* i * 4));
-				glVertexAttribDivisor(mvpMatrixLoc + i, 1);
+				glVertexAttribDivisor(instanceMatrixLoc + i, 1);
 			}
 		}
 		else{
-			mvpMatrixLoc = glGetUniformLocation(shader, "mvpMatrix");
+			
 		}
 
+		modelMatrixLoc = glGetUniformLocation(shader, "modelMatrix");
+		camPosLoc = glGetUniformLocation(shader, "eyePosition"); 
+
 		// bind buffer for indices and copy data into buffer
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[2]);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[3]);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices * sizeof(GLushort), indices, GL_STATIC_DRAW);
-		vio = buffers[2];
+		vio = buffers[3];
 	}
 	bool useMipmaps = false;
 	bool useInstance = false;
 	bool cullFace = true;
 	int numIndices;
 	int numVertices;
-	GLuint buffers[4];
-	void render_self(Matrix4 &parent, Matrix4 &self, std::vector<Matrix4> &modelMats){
+	GLuint buffers[5];
+	void render_self(Matrix4 &parent, Matrix4 &self, std::vector<Matrix4> &modelMats, Vector3 camPosition){
 		// Draw the quads
 		if (!cullFace) glDisable(GL_CULL_FACE);
 
 		glUseProgram(shader);
 		glBindVertexArray(vao);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,vio);
+
+		glUniform4f(camPosLoc, camPosition.x, camPosition.y, camPosition.z, 1);
 
 		if (isTextureShader){
 			glActiveTexture(GL_TEXTURE0);
@@ -169,14 +197,12 @@ public:
 		}
 		if (useInstance){
 			int numInstances = modelMats.size();
-			std::vector<Matrix4> mvpMats;
-			mvpMats.reserve(numInstances);
-			for (int i = 0; i < numInstances; ++i) {
-				mvpMats.push_back(parent * modelMats[i] * self);
-			}
 
-			glBindBuffer(GL_ARRAY_BUFFER, buffers[3]);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(Matrix4)* numInstances, &mvpMats[0], GL_DYNAMIC_DRAW);
+			glUniformMatrix4fv(mvpMatrixLoc, 1, true, (GLfloat*)&(parent));
+			glUniformMatrix4fv(modelMatrixLoc, 1, true, (GLfloat*)&(self));
+
+			glBindBuffer(GL_ARRAY_BUFFER, buffers[4]);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(Matrix4)* numInstances, &modelMats[0], GL_DYNAMIC_DRAW);
 			glBindVertexArray(vao);
 
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vio);
@@ -218,18 +244,18 @@ public:
 
 	void setScale(Vector3 _scale) { scale = _scale; }
 
-	virtual void render(Matrix4 vpMatrix, Matrix4 &parent, std::vector<Matrix4> &modelMats) {
+	virtual void render(Matrix4 vpMatrix, Matrix4 &parent, std::vector<Matrix4> &modelMats, Vector3 camPosition) {
 		auto self = parent * matrix();
 		if (renderable) {
-			renderable->render_self(vpMatrix, self, modelMats);
+			renderable->render_self(vpMatrix, self, modelMats, camPosition);
 		}
 
-		render_children(vpMatrix, self, modelMats);
+		render_children(vpMatrix, self, modelMats, camPosition);
 	}
 
-	void render_children(Matrix4 vpMatrix, Matrix4 self, std::vector<Matrix4> &modelMats) {
+	void render_children(Matrix4 vpMatrix, Matrix4 self, std::vector<Matrix4> &modelMats,Vector3 camPosition) {
 		for (auto it = children.begin(); it != children.end(); ++it) {
-			(*it)->render(vpMatrix, self, modelMats);
+			(*it)->render(vpMatrix, self, modelMats, camPosition);
 		}
 	}
 
@@ -254,6 +280,8 @@ public:
 		vertices.resize(numVertices);
 		std::vector<Color> colors;
 		colors.resize(numVertices);
+		std::vector<Vertex> normals;
+		normals.resize(numVertices);
 		std::vector<Texture2D> tCoords;
 		tCoords.resize(numVertices);
 
@@ -267,7 +295,25 @@ public:
 			float t = j * sub_z;
 			vertices[i * (subdivides + 1) + j] = Vertex(s, h_map.lookup(s,t), t);
 			tCoords[j + i * (subdivides + 1)] = Texture2D(((1.0f*i) / subdivides) * imageRatio, 1.0 - ((1.0f*j) / subdivides) * imageRatio);
+			Vector3 edge1 = Vector3(s + sub_x, h_map.lookup(s + sub_x, t), t) - Vector3(s, h_map.lookup(s, t), t);
+			edge1.normalize();
+			Vector3 right1 = Vector3::cross(edge1, Vector3(0, 1, 0));
+			Vector3 norm1 = Vector3::cross(right1, edge1);
+			Vector3 edge2 = Vector3(s - sub_x, h_map.lookup(s - sub_x, t), t) - Vector3(s, h_map.lookup(s, t), t);
+			edge2.normalize();
+			Vector3 right2 = Vector3::cross(edge2, Vector3(0, 1, 0));
+			Vector3 norm2 = Vector3::cross(right2, edge2);
+			Vector3 edge3 = Vector3(s, h_map.lookup(s, t + sub_z), t + sub_z) - Vector3(s, h_map.lookup(s, t), t);
+			edge3.normalize();
+			Vector3 right3 = Vector3::cross(edge3, Vector3(0, 1, 0));
+			Vector3 norm3 = Vector3::cross(right3, edge3);
+			Vector3 edge4 = Vector3(s, h_map.lookup(s, t - sub_z), t - sub_z) - Vector3(s, h_map.lookup(s, t), t);
+			edge4.normalize();
+			Vector3 right4 = Vector3::cross(edge4, Vector3(0, 1, 0));
+			Vector3 norm4 = Vector3::cross(right4, edge4);
+			Vector3 norm = (norm1 + norm2 + norm3 + norm4) / 4;
 			colors[j + i * (subdivides + 1)] = Color(0.3, 0.5, 0, 1);
+			normals[j + i * (subdivides + 1)] = Vertex(norm.x, norm.y, norm.z, 0);
 		}
 
 		int index = 0;
@@ -284,7 +330,7 @@ public:
 
 		}
 
-		init_geometry(&vertices[0], &colors[0], &indices[0], &tCoords[0], imageId);
+		init_geometry(&vertices[0], &colors[0], &normals[0], &indices[0], &tCoords[0], imageId);
 	}
 };
 
@@ -312,6 +358,8 @@ public:
 		vertices.resize(numVertices);
 		std::vector<Color> colors;
 		colors.resize(numVertices);
+		std::vector<Vertex> normals;
+		normals.resize(numVertices);
 		std::vector<Texture2D> tCoords;
 		tCoords.resize(numVertices);
 
@@ -323,6 +371,7 @@ public:
 			vertices[i * (subdivides + 1) + j] = Vertex(min_x + i * sub_x,min_y + j*sub_y, 0, 1);
 			tCoords[j + i *(subdivides + 1)] = Texture2D(((1.0f*i) / subdivides) * imageRatio, 1.0-((1.0f*j) / subdivides) * imageRatio);
 			colors[j + i *(subdivides + 1)] = Color(0.3, 0.5, 0, 1);
+			normals[j + i *(subdivides + 1)] = Vertex(0, 0, 1, 1);
 		}
 
 		int index = 0;
@@ -339,7 +388,7 @@ public:
 
 		}
 
-		init_geometry(&vertices[0], &colors[0], &indices[0], &tCoords[0], imageId);
+		init_geometry(&vertices[0], &colors[0],&normals[0], &indices[0], &tCoords[0], imageId);
 	}
 };
 
@@ -350,18 +399,21 @@ public:
 		isTextureShader = useTexture;
 		useInstance = useInst;
 		useMipmaps = true;
+
 		numVertices = (sectors+1) * 2;
 		auto half = numVertices / 2;
 		auto S = 1. / (float)(sectors);
 
 		Vertex* vertices = new Vertex[numVertices];
-		useMipmaps = true;
+		Vertex* normals = new Vertex[numVertices];
 		for (auto s = 0; s < half; s++) {
 			auto x = cos(2 * Math::PI * s * S);
 			auto z = sin(2 * Math::PI * s * S);
 
 			vertices[s]        = Vertex(x * topradius, length, z * topradius, 1);
 			vertices[half + s] = Vertex(x * botradius, 0, z * botradius, 1);
+			normals[s] = Vertex(x, 0, z, 1);
+			normals[half + s] = Vertex(x, 0, z, 1);
 		}
 
 
@@ -402,7 +454,7 @@ public:
 			tCoords[i + half].v = 1;
 		}
 
-		init_geometry(vertices, colors, &indices[0], tCoords, imageId);
+		init_geometry(vertices, colors, normals, &indices[0], tCoords, imageId);
 	}
 };
 
@@ -446,10 +498,11 @@ public:
 			vertices[i * 4 + 1] = Vertex(multMatVec(modelMatrices[i],Vector4(max_x, min_y, 0, 1)));
 			vertices[i * 4 + 2] = Vertex(multMatVec(modelMatrices[i],Vector4(min_x, max_y, 0, 1)));
 			vertices[i * 4 + 3] = Vertex(multMatVec(modelMatrices[i],Vector4(max_x, max_y, 0, 1)));
-			normals[i * 4] = Vertex(0,0,1,1);
-			normals[i * 4 + 1] = Vertex(0, 0, 1, 1);
-			normals[i * 4 + 2] = Vertex(0, 0, 1, 1);
-			normals[i * 4 + 3] = Vertex(0, 0, 1, 1);
+			
+			normals[i * 4] = Vertex(multMatVec(modelMatrices[i], Vector4(0, 0, 1, 0)));
+			normals[i * 4 + 1] = Vertex(multMatVec(modelMatrices[i], Vector4(0, 0, 1, 0)));
+			normals[i * 4 + 2] = Vertex(multMatVec(modelMatrices[i], Vector4(0, 0, 1, 0)));
+			normals[i * 4 + 3] = Vertex(multMatVec(modelMatrices[i], Vector4(0, 0, 1, 0)));
 
 			tCoords[i*4] = Texture2D(0,1);
 			tCoords[i*4+1] = Texture2D(1, 1);
@@ -470,7 +523,77 @@ public:
 			indices[index++] = i * 4 + 3;
 		}
 
-		init_geometry(&vertices[0], &colors[0], &indices[0], &tCoords[0], imageId);
+		init_geometry(&vertices[0], &colors[0], &normals[0], &indices[0], &tCoords[0], imageId);
+	}
+};
+
+class SuperBranch: public Renderable
+{
+public:
+	SuperBranch(GLuint shaderId, int sectors, GLuint imageId, std::vector<Branch> &branchs, bool mipmap = false, bool useInst = false)
+	{
+		shader = shaderId;
+		isTextureShader = true;
+		useMipmaps = mipmap;
+		useInstance = useInst;
+
+		int vertsPerBranch = (sectors + 1) * 2;
+		numVertices = vertsPerBranch * branchs.size();
+		auto half = vertsPerBranch / 2;
+		auto S = 1. / (float)(sectors);
+
+		numIndices = ((sectors - 2) * 3 * 2 + sectors * 6) * branchs.size();
+
+		std::vector<Vertex> vertices;
+		vertices.resize(numVertices);
+		std::vector<Color> colors;
+		colors.resize(numVertices);
+		std::vector<Texture2D> tCoords;
+		tCoords.resize(numVertices);
+		std::vector<Vertex> normals;
+		normals.resize(numVertices);
+		std::vector<GLushort> indices;
+		indices.resize(numIndices);
+		auto k = indices.begin();
+
+
+		for (auto i = 0; i < branchs.size(); i++)
+		{
+			for (auto s = 0; s < half; s++) {
+				auto x = cos(2 * Math::PI * s * S);
+				auto z = sin(2 * Math::PI * s * S);
+
+				vertices[vertsPerBranch * i + s] = Vertex(multMatVec(branchs[i].transform, Vector4(x * branchs[i].toprad, branchs[i].height, z * branchs[i].toprad, 1)));
+				vertices[vertsPerBranch * i + half + s] = Vertex(multMatVec(branchs[i].transform, Vector4(x * branchs[i].botrad, 0, z * branchs[i].botrad, 1)));
+				normals[vertsPerBranch * i + s] = Vertex(multMatVec(branchs[i].transform, Vector4(x, 0, z, 0)));
+				normals[vertsPerBranch * i + half + s] = Vertex(multMatVec(branchs[i].transform, Vector4(x, 0, z, 0)));
+				tCoords[vertsPerBranch * i + s].u = S*s;
+				tCoords[vertsPerBranch * i + s].v = 0;
+				tCoords[vertsPerBranch * i + s + half].u = S*s;
+				tCoords[vertsPerBranch * i + s + half].v = 1;
+			}
+
+			for (auto s = 1; s < sectors - 1; s++) {//top
+				*k++ = 0 + vertsPerBranch * i;
+				*k++ = s + 1 + vertsPerBranch* i;
+				*k++ = s + vertsPerBranch* i;
+			}
+			for (auto s = 1; s < sectors - 1; s++) {//bottom
+				*k++ = half + vertsPerBranch* i;
+				*k++ = half + s + vertsPerBranch* i;
+				*k++ = half + s + 1 + vertsPerBranch* i;
+			}
+			for (auto s = 0; s < sectors; s++) {//side
+				*k++ = s + vertsPerBranch* i;
+				*k++ = s + 1 + vertsPerBranch* i;
+				*k++ = half + s + vertsPerBranch* i;
+				*k++ = half + s + vertsPerBranch* i;
+				*k++ = s + 1 + vertsPerBranch* i;
+				*k++ = half + s + 1 + vertsPerBranch* i;
+			}
+		}
+
+		init_geometry(&vertices[0], &colors[0], &normals[0], &indices[0], &tCoords[0], imageId);
 	}
 };
 
@@ -534,7 +657,9 @@ public:
 	GLuint leaf_img = 0;
 	GLuint bark_img = 0;
 	std::vector<Matrix4> leafModels;
+	std::vector<Branch> branchs;
 	SuperLeaf *superleaf;
+	SuperBranch *superbranch;
 
 	TreeLSystem(Vector3 pos, GLuint shaderid, bool useTexture, GLuint barkImage, GLuint leafImage) 
 			: Entity(pos, 0) {
@@ -543,9 +668,12 @@ public:
 		shader = shaderid;
 		texture = useTexture;
 		Matrix4 stack = Matrix4::IDENTITY;
-		children.push_back(recurse(0, 4, 0, 0, 0, max_depth, stack));
+		//branchs.push_back(Branch(4, 4 * width_rate, height_rate * std::pow(2, max_depth), stack));
+		recurse(0, 4, 0, 0, 0, max_depth, stack);
 		superleaf = new SuperLeaf(shader5, 8, 12, leafImage, leafModels, true, true);
 		children.push_back(new Entity(Vector3(0, 0, 0), superleaf));
+		superbranch = new SuperBranch(shaderid, 10, barkImage, branchs, true, true);
+		children.push_back(new Entity(Vector3(0, 0, 0), superbranch));
 	}
 
 	Entity* recurse(Entity* parent, float width, float v_offset, float tilt, float angle, int depth, Matrix4 stack) {
@@ -564,6 +692,11 @@ public:
 		if (depth == min_depth)
 		{
 			leafModels.push_back(stack);
+		}
+		else
+		{
+			Branch branch(new_width, width, height, stack);
+			branchs.push_back(branch);
 		}
 		tilt -= tilt_rate;
 		{
@@ -594,7 +727,7 @@ public:
 			entity->orientation.fromHeadPitchRoll(angle, 0, tilt);
 			
 		}
-		if (parent && !leaf) parent->children.push_back(entity);
+		//if (parent && !leaf) parent->children.push_back(entity);
 		return entity;
 	}
 

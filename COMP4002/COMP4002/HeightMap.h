@@ -22,10 +22,10 @@ inline HeightMap::HeightMap(const char* filename)
 
 inline float HeightMap::lookup(float x, float z)
 {
-	if (x > 1.0f) return 0;
-	if (z > 1.0f) return 0;
-	if (x < 0.0f) return 0;
-	if (z < 0.0f) return 0;
+	if (x > 1.0f) x = 1;
+	if (z > 1.0f) z = 1;
+	if (x < 0.0f) x = 0;
+	if (z < 0.0f) z = 0;
 	
 	int mapX = x * width;
 	int mapZ = z * length;

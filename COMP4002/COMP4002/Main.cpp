@@ -53,7 +53,7 @@ void resizeWin(int w, int h) {
 	ratio = (1.0f * w) / h;
 	projectionMatrix = Matrix4::projection(60, ratio, 1, 10000);
 }
-int activeScene = 1;
+int activeScene = 3;
 void updateState() {
 	auto time = glutGet(GLUT_ELAPSED_TIME);
 	auto delta = (time - oldtime) / 1000.0;
@@ -98,12 +98,14 @@ void renderWin(void) {
 	auto mvMatrix = projectionMatrix * cam.getViewMatrix();
 	auto rootMatrix = Matrix4::IDENTITY;
 	skybox->render_self(mvMatrix,cam.getPosition());
-	terrain->render(mvMatrix, rootMatrix, modelMatrices);
+	terrain->render(mvMatrix, rootMatrix, modelMatrices,cam.getPosition());
 
 	if (activeScene == 1)
 	{
+		std::vector<Matrix4> temp;
+		temp.push_back(Matrix4::IDENTITY);
 		for (auto it = scene1.begin(); it != scene1.end(); ++it) {
-			(*it)->render(mvMatrix, rootMatrix, modelMatrices);
+			(*it)->render(mvMatrix, rootMatrix, temp, cam.getPosition());
 		}
 	}
 	if (activeScene == 2)
@@ -111,13 +113,13 @@ void renderWin(void) {
 		std::vector<Matrix4> temp;
 		temp.push_back(Matrix4::IDENTITY);
 		for (auto it = scene2.begin(); it != scene2.end(); ++it) {
-			(*it)->render(mvMatrix, rootMatrix, temp);
+			(*it)->render(mvMatrix, rootMatrix, temp, cam.getPosition());
 		}
 	}
 	if (activeScene == 3)
 	{
 		for (auto it = entities.begin(); it != entities.end(); ++it) {
-			(*it)->render(mvMatrix, rootMatrix, modelMatrices);
+			(*it)->render(mvMatrix, rootMatrix, modelMatrices, cam.getPosition());
 		}
 	}
 	
@@ -160,7 +162,7 @@ void loadImages()
 	images["nature_bark.png"] = SOIL_load_OGL_texture("nature_bark.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
 	images["templeaf.png"] = SOIL_load_OGL_texture("templeaf.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
 	images["ground_texture.png"] = SOIL_load_OGL_texture("ground_texture.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_TEXTURE_REPEATS);
-	images["emerald_skybox"] = SOIL_load_OGL_cubemap("siege_right.jpg", "siege_left.jpg", "siege_top.jpg", "siege_front.jpg", "siege_front.jpg", "siege_back.jpg",
+	images["emerald_skybox"] = SOIL_load_OGL_cubemap("siege_right.jpg", "siege_left.jpg", "siege_top.jpg", "siege_bottom.jpg", "siege_front.jpg", "siege_back.jpg",
 		SOIL_LOAD_RGB,
 		SOIL_CREATE_NEW_ID,
 		NULL
@@ -181,7 +183,7 @@ void createEntities() {
 
 	entities.push_back(new TreeLSystem(Vector3(0, 0, 0), shader4, true, images["nature_bark.png"], images["templeaf.png"]));
 	scene2.push_back(new TreeLSystem(Vector3(0, 0, 0), shader4, true, images["nature_bark.png"], images["templeaf.png"]));
-	scene1.push_back(new TreeNaive(Vector3(0, 0, 0), shader2, true, images["nature_bark.png"], images["templeaf.png"]));
+	scene1.push_back(new TreeNaive(Vector3(0, 0, 0), shader1, true, images["nature_bark.png"], images["templeaf.png"]));
 }
 
 // Function called when timer ends
@@ -235,7 +237,7 @@ int main(int argc, char **argv) {
 	cam = Camera(Vector3(2000, 300, 200), Vector3(0, 0, 0), Vector3(0, 1, 0));
 	// cam.setPosition(Vector3(2000, 300, 200));
 
-	shader1 = setupShaders("shader.vert", "shader.frag");
+	shader1 = setupShaders("shader2.vert", "shader.frag");
 	shader2 = setupShaders("shader2.vert", "shader2.frag");
 	shader3 = setupShaders("skybox.vert", "skybox.frag");
 	shader4 = setupShaders("instanceTextureShader.vert", "shader2.frag");

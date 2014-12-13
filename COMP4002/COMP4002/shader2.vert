@@ -17,6 +17,8 @@ void main()
 	
     gl_Position = mvpMatrix * position;
 
-	worldposition = vec4(0,0,0,1);
-	worldnormal = vec4(0,1,0,1);
+	worldposition = modelMatrix * position;
+	worldnormal = modelMatrix * vec4(normal.x,normal.y,normal.z,0);
+	worldnormal = vec4(worldnormal.x,worldnormal.y,worldnormal.z,0);
+	worldnormal = normalize(normal);
 }
